@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MathBattle.com - Math Battle Arena</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 250px;
+      background: #1a2744;
+      padding: 20px;
+      height: 100vh;
+      box-sizing: border-box;
+      border-right: 2px solid #4a7c99;
+      overflow-y: auto;
+    }
+    .sidebar h3 {
+      color: #ffd700;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .topic-group {
+      margin-bottom: 15px;
+    }
+    .category-btn {
+      display: block;
+      width: 100%;
+      padding: 18px 12px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-bottom: 8px;
+      transition: all 0.3s;
+    }
+    .category-btn:hover {
+      background: #1d4ed8;
+      box-shadow: 0 0 20px rgba(29, 78, 216, 1), 0 0 25px rgba(29, 78, 216, 0.6);
+    }
+    .category-btn.active {
+      background: #ffd700;
+      color: #0f172a;
+      font-weight: bold;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 1), 0 0 25px rgba(255, 215, 0, 0.6);
+    }
+    .difficulty-btns {
+      display: none;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+    .difficulty-btns.show {
+      display: flex;
+    }
+    .topic-group:first-child .difficulty-btns {
+      display: flex;
+    }
+    .difficulty-btn {
+      flex: 1;
+      padding: 8px 5px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s;
+    }
+    .difficulty-btn:hover {
+      background: #555;
+      box-shadow: 0 0 10px rgba(100, 100, 100, 0.8);
+    }
+    .difficulty-btn.active {
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+    }
+    .main {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 10px;
+      font-size: 40px;
+    }
+    .play-again-container {
+      min-height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    #playAgain {
+      display: none;
+      background: #16a34a;
+      font-size: 18px;
+      padding: 15px 30px;
+      box-shadow: 0 0 20px #16a34a, 0 0 40px #16a34a;
+    }
+    #playAgain:hover {
+      background: #15803d;
+      box-shadow: 0 0 20px rgba(22, 163, 74, 1), 0 0 25px rgba(22, 163, 74, 0.6);
+    }
+    .box {
+      margin-top: 20px;
+    }
+    #question {
+      font-size: 28px;
+      margin: 20px 0;
+      min-height: 60px;
+      padding: 20px;
+      background: #1a2744;
+      border-radius: 10px;
+      white-space: pre-line;
+    }
+    input {
+      padding: 12px;
+      font-size: 18px;
+      width: 150px;
+      border-radius: 5px;
+      border: none;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background: #2563eb;
+      color: white;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background: #1d4ed8;
+      box-shadow: 0 0 20px rgba(37, 99, 235, 1), 0 0 25px rgba(37, 99, 235, 0.6);
+    }
+    button.attack {
+      background: #ff5555;
+    }
+    button.attack:hover {
+      background: #ff3333;
+      box-shadow: 0 0 20px rgba(255, 85, 85, 1), 0 0 25px rgba(255, 51, 51, 0.8);
+    }
+    button.hint {
+      background: #ea580c;
+    }
+    button.hint:hover {
+      background: #c2410c;
+      box-shadow: 0 0 20px rgba(234, 88, 12, 1), 0 0 25px rgba(234, 88, 12, 0.6);
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .bar {
+      width: 200px;
+      height: 25px;
+      background: rgba(100, 100, 100, 0.5);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #666;
+    }
+    .health {
+      height: 100%;
+      transition: width 0.3s, background 0.3s;
+      border-radius: 6px;
+    }
+    #playerHealth {
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    }
+    #enemyHealth {
+      background: linear-gradient(90deg, #10b981, #34d399);
+    }
+    #playerHealth.low-health {
+      background: linear-gradient(90deg, #ef4444, #f87171);
+      animation: pulse 0.8s infinite;
+    }
+    #enemyHealth.low-health {
+      background: linear-gradient(90deg, #ef4444, #f87171);
+      animation: pulse 0.8s infinite;
+    }
+    .health-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .health-label {
+      font-weight: bold;
+      font-size: 14px;
+      color: #ffd700;
+    }
+    #feedback {
+      font-size: 18px;
+      margin: 15px 0;
+      min-height: 30px;
+    }
+    #hint {
+      color: #ffd700;
+      font-style: italic;
+      margin-top: 15px;
+      padding: 15px;
+      background: #1a2744;
+      border-radius: 5px;
+      min-height: 30px;
+    }
+    #hintUsed {
+      color: #ff6b6b;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    .characters {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-top: 40px;
+      padding: 30px;
+      background: #1a2744;
+      border-radius: 10px;
+    }
+    .character {
+      text-align: center;
+      font-size: 100px;
+      line-height: 1;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      font-weight: bold;
+    }
+    .character.shake {
+      animation: shake 0.5s;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+    .character-name {
+      font-size: 14px;
+      margin-top: 10px;
+      color: #ffd700;
+    }
+    #status {
+      font-size: 32px;
+      font-weight: bold;
+      margin: 10px 0 20px 0;
+      min-height: 45px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      display: block;
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid transparent;
+      transition: all 0.3s;
+    }
+    #status.correct {
+      color: #22c55e;
+      background: rgba(34, 197, 94, 0.15);
+      border-color: #22c55e;
+      text-shadow: 0 0 20px rgba(34, 197, 94, 1), 0 0 30px rgba(34, 197, 94, 0.8);
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2);
+    }
+    #status.incorrect {
+      color: #ff3333;
+      background: rgba(255, 51, 51, 0.15);
+      border-color: #ff3333;
+      text-shadow: 0 0 20px rgba(255, 51, 51, 1), 0 0 30px rgba(255, 51, 51, 0.8);
+      box-shadow: 0 0 20px rgba(255, 51, 51, 0.5), inset 0 0 10px rgba(255, 51, 51, 0.2);
+    }
+    #questionCounter {
+      font-size: 18px;
+      color: #ffd700;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h3>📚 Categories</h3>
+
+  <div class="topic-group">
+    <button class="category-btn active" onclick="selectCategory('addition', this)">➕ Addition</button>
+    <div class="difficulty-btns">
+      <button class="difficulty-btn active" onclick="setDifficulty('addition', 'easy')">Easy</button>
+      <button class="difficulty-btn" onclick="setDifficulty('addition', 'medium')">Medium</button>
+      <button class="difficulty-btn" onclick="setDifficulty('addition', 'hard')">Hard</button>
+    </div>
+  </div>
+
+  <div class="topic-group">
+    <button class="category-btn" onclick="selectCategory('subtraction', this)">➖ Subtraction</button>
+    <div class="difficulty-btns">
+      <button class="difficulty-btn active" onclick="setDifficulty('subtraction', 'easy')">Easy</button>
+      <button class="difficulty-btn" onclick="setDifficulty('subtraction', 'medium')">Medium</button>
+      <button class="difficulty-btn" onclick="setDifficulty('subtraction', 'hard')">Hard</button>
+    </div>
+  </div>
+
+  <div class="topic-group">
+    <button class="category-btn" onclick="selectCategory('multiplication', this)">✖️ Multiplication</button>
+    <div class="difficulty-btns">
+      <button class="difficulty-btn active" onclick="setDifficulty('multiplication', 'easy')">Easy</button>
+      <button class="difficulty-btn" onclick="setDifficulty('multiplication', 'medium')">Medium</button>
+      <button class="difficulty-btn" onclick="setDifficulty('multiplication', 'hard')">Hard</button>
+    </div>
+  </div>
+
+  <div class="topic-group">
+    <button class="category-btn" onclick="selectCategory('fractions', this)">🔀 Fractions</button>
+    <div class="difficulty-btns">
+      <button class="difficulty-btn active" onclick="setDifficulty('fractions', 'easy')">Easy</button>
+      <button class="difficulty-btn" onclick="setDifficulty('fractions', 'medium')">Medium</button>
+      <button class="difficulty-btn" onclick="setDifficulty('fractions', 'hard')">Hard</button>
+    </div>
+  </div>
+
+  <div class="topic-group">
+    <button class="category-btn" onclick="selectCategory('decimals', this)">🔢 Decimals</button>
+    <div class="difficulty-btns">
+      <button class="difficulty-btn active" onclick="setDifficulty('decimals', 'easy')">Easy</button>
+      <button class="difficulty-btn" onclick="setDifficulty('decimals', 'medium')">Medium</button>
+      <button class="difficulty-btn" onclick="setDifficulty('decimals', 'hard')">Hard</button>
+    </div>
+  </div>
+
+  <div class="topic-group">
+    <button class="category-btn" onclick="selectCategory('algebra', this)">📐 Algebra</button>
+    <div class="difficulty-btns">
+      <button class="difficulty-btn active" onclick="setDifficulty('algebra', 'easy')">Easy</button>
+      <button class="difficulty-btn" onclick="setDifficulty('algebra', 'medium')">Medium</button>
+      <button class="difficulty-btn" onclick="setDifficulty('algebra', 'hard')">Hard</button>
+    </div>
+  </div>
+
+  <div class="topic-group">
+    <button class="category-btn" onclick="selectCategory('geometry', this)">🔷 Geometry</button>
+    <div class="difficulty-btns">
+      <button class="difficulty-btn active" onclick="setDifficulty('geometry', 'easy')">Easy</button>
+      <button class="difficulty-btn" onclick="setDifficulty('geometry', 'medium')">Medium</button>
+      <button class="difficulty-btn" onclick="setDifficulty('geometry', 'hard')">Hard</button>
+    </div>
+  </div>
+
+  <div class="topic-group">
+    <button class="category-btn" onclick="selectCategory('calculus', this)">∫ Calculus</button>
+    <div class="difficulty-btns">
+      <button class="difficulty-btn active" onclick="setDifficulty('calculus', 'easy')">Easy</button>
+      <button class="difficulty-btn" onclick="setDifficulty('calculus', 'medium')">Medium</button>
+      <button class="difficulty-btn" onclick="setDifficulty('calculus', 'hard')">Hard</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <h1>⚔️ Numeracy Arena</h1>
+  <div id="questionCounter">Questions Answered: 0</div>
+  <div id="status"></div>
+
+  <div class="play-again-container">
+    <button id="playAgain" onclick="resetGame()">🔄 Play Again</button>
+  </div>
+
+  <div class="box">
+    <h2 id="question">Select a category to start!</h2>
+
+    <input id="answer" type="number" placeholder="Enter answer" onkeypress="if(event.key==='Enter') submitAnswer()">
+    <button class="attack" onclick="submitAnswer()">⚡ Attack</button>
+    <button class="hint" onclick="getHint()">💡 Get Hint</button>
+
+    <p id="feedback"></p>
+    <p id="hint"></p>
+    <p id="hintUsed"></p>
+
+    <div class="characters">
+      <div class="health-container">
+        <div class="health-label">🧍 You</div>
+        <div class="bar"><div id="playerHealth" class="health" style="width: 100%"></div></div>
+        <div class="character" id="playerChar">🧙‍♂️</div>
+      </div>
+      <div style="text-align: center;">
+        <p style="font-size: 24px; margin-top: 50px;">⚡</p>
+      </div>
+      <div class="health-container">
+        <div class="health-label">🤖 Enemy</div>
+        <div class="bar"><div id="enemyHealth" class="health" style="width: 100%"></div></div>
+        <div class="character" id="enemyChar">👹</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let playerHP = 100;
+let enemyHP = 100;
+let streak = 0;
+let hintUsedCount = 0;
+let questionsAnswered = 0;
+
+let correctAnswer = 0;
+let currentCategory = "addition";
+let currentDifficulty = "easy";
+let currentQuestion = "";
+let gameActive = false;
+
+function selectCategory(category, buttonElement) {
+  currentCategory = category;
+  
+  // Hide all difficulty buttons
+  document.querySelectorAll('.difficulty-btns').forEach(btns => {
+    btns.classList.remove('show');
+  });
+  
+  // Show only the selected category's difficulty buttons
+  buttonElement.parentElement.querySelector('.difficulty-btns').classList.add('show');
+  
+  // Update active category button
+  document.querySelectorAll('.category-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  buttonElement.classList.add('active');
+  
+  resetGame();
+  generateQuestion();
+}
+
+function setDifficulty(category, difficulty) {
+  currentDifficulty = difficulty;
+  
+  const parent = event.target.parentElement;
+  parent.querySelectorAll('.difficulty-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  generateQuestion();
+}
+
+function generateQuestion() {
+  let a, b;
+  gameActive = true;
+  document.getElementById("answer").value = "";
+  document.getElementById("feedback").innerText = "";
+
+  if (currentCategory === "addition") {
+    if (currentDifficulty === "easy") {
+      a = Math.floor(Math.random() * 5);
+      b = Math.floor(Math.random() * 5);
+    } else if (currentDifficulty === "medium") {
+      a = Math.floor(Math.random() * 20) + 10;
+      b = Math.floor(Math.random() * 20) + 10;
+    } else {
+      a = Math.floor(Math.random() * 50) + 30;
+      b = Math.floor(Math.random() * 50) + 30;
+    }
+    correctAnswer = a + b;
+    currentQuestion = `${a} + ${b}`;
+    document.getElementById("question").innerText = `${a} + ${b} = ?`;
+    
+  } else if (currentCategory === "subtraction") {
+    if (currentDifficulty === "easy") {
+      a = Math.floor(Math.random() * 10);
+      b = Math.floor(Math.random() * 5);
+    } else if (currentDifficulty === "medium") {
+      a = Math.floor(Math.random() * 30) + 20;
+      b = Math.floor(Math.random() * 20) + 5;
+    } else {
+      a = Math.floor(Math.random() * 60) + 40;
+      b = Math.floor(Math.random() * 40) + 10;
+    }
+    correctAnswer = a - b;
+    currentQuestion = `${a} - ${b}`;
+    document.getElementById("question").innerText = `${a} - ${b} = ?`;
+    
+  } else if (currentCategory === "multiplication") {
+    if (currentDifficulty === "easy") {
+      a = Math.floor(Math.random() * 5) + 1;
+      b = Math.floor(Math.random() * 5) + 1;
+    } else if (currentDifficulty === "medium") {
+      a = Math.floor(Math.random() * 12) + 1;
+      b = Math.floor(Math.random() * 12) + 1;
+    } else {
+      a = Math.floor(Math.random() * 20) + 10;
+      b = Math.floor(Math.random() * 20) + 10;
+    }
+    correctAnswer = a * b;
+    currentQuestion = `${a} × ${b}`;
+    document.getElementById("question").innerText = `${a} × ${b} = ?`;
+    
+  } else if (currentCategory === "fractions") {
+    let maxNum, maxDen;
+    if (currentDifficulty === "easy") {
+      maxNum = 3;
+      maxDen = 3;
+    } else if (currentDifficulty === "medium") {
+      maxNum = 9;
+      maxDen = 9;
+    } else {
+      maxNum = 15;
+      maxDen = 15;
+    }
+    a = Math.floor(Math.random() * maxNum) + 1;
+    b = Math.floor(Math.random() * maxDen) + 1;
+    let c = Math.floor(Math.random() * maxNum) + 1;
+    let d = Math.floor(Math.random() * maxDen) + 1;
+    
+    const operations = ['+', '-', '×', '÷'];
+    const op = operations[Math.floor(Math.random() * operations.length)];
+    
+    let numerator, denominator;
+    if (op === '+') {
+      numerator = a * d + c * b;
+      denominator = b * d;
+    } else if (op === '-') {
+      numerator = a * d - c * b;
+      denominator = b * d;
+    } else if (op === '×') {
+      numerator = a * c;
+      denominator = b * d;
+    } else { // ÷
+      numerator = a * d;
+      denominator = b * c;
+    }
+    correctAnswer = `${numerator}/${denominator}`;
+    currentQuestion = `${a}/${b} ${op} ${c}/${d}`;
+    document.getElementById("question").innerText = `${a}/${b} ${op} ${c}/${d} = ?`;
+    
+  } else if (currentCategory === "decimals") {
+    let max1, max2;
+    if (currentDifficulty === "easy") {
+      max1 = 5;
+      max2 = 5;
+    } else if (currentDifficulty === "medium") {
+      max1 = 20;
+      max2 = 20;
+    } else {
+      max1 = 50;
+      max2 = 50;
+    }
+    a = (Math.random() * max1).toFixed(1);
+    b = (Math.random() * max2).toFixed(1);
+    
+    const operations = ['+', '-', '×', '÷'];
+    const op = operations[Math.floor(Math.random() * operations.length)];
+    
+    let result;
+    if (op === '+') {
+      result = parseFloat((parseFloat(a) + parseFloat(b)).toFixed(1));
+    } else if (op === '-') {
+      result = parseFloat((parseFloat(a) - parseFloat(b)).toFixed(1));
+    } else if (op === '×') {
+      result = parseFloat((parseFloat(a) * parseFloat(b)).toFixed(1));
+    } else { // ÷
+      result = parseFloat(b) !== 0 ? parseFloat((parseFloat(a) / parseFloat(b)).toFixed(1)) : 0;
+    }
+    correctAnswer = result;
+    currentQuestion = `${a} ${op} ${b}`;
+    document.getElementById("question").innerText = `${a} ${op} ${b} = ?`;
+    
+  } else if (currentCategory === "algebra") {
+    let maxCoef, maxResult;
+    if (currentDifficulty === "easy") {
+      maxCoef = 5;
+      maxResult = 5;
+    } else if (currentDifficulty === "medium") {
+      maxCoef = 12;
+      maxResult = 10;
+    } else {
+      maxCoef = 20;
+      maxResult = 20;
+    }
+    a = Math.floor(Math.random() * maxCoef) + 2;
+    b = Math.floor(Math.random() * maxResult) + 1;
+    correctAnswer = b;
+    currentQuestion = `${a}x = ${a * b}`;
+    document.getElementById("question").innerText = `Solve: ${a}x = ${a * b}\nWhat is x?`;
+    
+  } else if (currentCategory === "geometry") {
+    const shapes = ["rectangle", "circle", "triangle"];
+    let shape = shapes[Math.floor(Math.random() * shapes.length)];
+    
+    if (currentDifficulty === "easy") {
+      if (shape === "rectangle") {
+        a = Math.floor(Math.random() * 10) + 3;
+        b = Math.floor(Math.random() * 10) + 3;
+        correctAnswer = a * b;
+        currentQuestion = `Rectangle area: ${a} × ${b}`;
+        document.getElementById("question").innerText = `Rectangle with width ${a} and height ${b}. Find the area.`;
+      } else if (shape === "circle") {
+        a = Math.floor(Math.random() * 8) + 2;
+        correctAnswer = parseFloat((3.14 * a * a).toFixed(1));
+        currentQuestion = `Circle area: r=${a}`;
+        document.getElementById("question").innerText = `Circle with radius ${a}. Find the area. (Use π ≈ 3.14)`;
+      } else {
+        a = Math.floor(Math.random() * 10) + 3;
+        b = Math.floor(Math.random() * 10) + 3;
+        correctAnswer = parseFloat(((a * b) / 2).toFixed(1));
+        currentQuestion = `Triangle area: ${a} × ${b}/2`;
+        document.getElementById("question").innerText = `Triangle with base ${a} and height ${b}. Find the area.`;
+      }
+    } else if (currentDifficulty === "medium") {
+      if (shape === "rectangle") {
+        a = Math.floor(Math.random() * 15) + 8;
+        b = Math.floor(Math.random() * 15) + 8;
+        correctAnswer = 2 * (a + b);
+        currentQuestion = `Rectangle perimeter: ${a} × ${b}`;
+        document.getElementById("question").innerText = `Rectangle with length ${a} and width ${b}. Find the perimeter.`;
+      } else if (shape === "circle") {
+        a = Math.floor(Math.random() * 10) + 4;
+        correctAnswer = parseFloat((2 * 3.14 * a).toFixed(1));
+        currentQuestion = `Circle circumference: r=${a}`;
+        document.getElementById("question").innerText = `Circle with radius ${a}. Find the circumference. (Use π ≈ 3.14)`;
+      } else {
+        a = Math.floor(Math.random() * 12) + 5;
+        b = Math.floor(Math.random() * 12) + 5;
+        correctAnswer = parseFloat(Math.sqrt(a * a + b * b).toFixed(1));
+        currentQuestion = `Right triangle hypotenuse: ${a}, ${b}`;
+        document.getElementById("question").innerText = `Right triangle with legs ${a} and ${b}. Find the hypotenuse.`;
+      }
+    } else {
+      if (shape === "rectangle") {
+        a = Math.floor(Math.random() * 12) + 5;
+        b = Math.floor(Math.random() * 12) + 5;
+        let c = Math.floor(Math.random() * 12) + 5;
+        correctAnswer = a * b * c;
+        currentQuestion = `Rectangular prism volume: ${a} × ${b} × ${c}`;
+        document.getElementById("question").innerText = `Rectangular prism with dimensions ${a} × ${b} × ${c}. Find the volume.`;
+      } else if (shape === "circle") {
+        a = Math.floor(Math.random() * 8) + 3;
+        correctAnswer = parseFloat(((4/3) * 3.14 * a * a * a).toFixed(1));
+        currentQuestion = `Sphere volume: r=${a}`;
+        document.getElementById("question").innerText = `Sphere with radius ${a}. Find the volume. (Use π ≈ 3.14)`;
+      } else {
+        a = Math.floor(Math.random() * 10) + 4;
+        b = Math.floor(Math.random() * 12) + 5;
+        correctAnswer = parseFloat(((1/3) * 3.14 * a * a * b).toFixed(1));
+        currentQuestion = `Cone volume: r=${a}, h=${b}`;
+        document.getElementById("question").innerText = `Cone with radius ${a} and height ${b}. Find the volume. (Use π ≈ 3.14)`;
+      }
+    }
+    
+  } else if (currentCategory === "calculus") {
+    if (currentDifficulty === "easy") {
+      const powers = [2, 3, 4, 5];
+      a = powers[Math.floor(Math.random() * powers.length)];
+      correctAnswer = a;
+      currentQuestion = `Derivative of x^${a}`;
+      document.getElementById("question").innerText = `Find the derivative of x^${a}. (Answer as coefficient only)`;
+    } else if (currentDifficulty === "medium") {
+      a = Math.floor(Math.random() * 4) + 2;
+      b = Math.floor(Math.random() * 3) + 1;
+      const coeff = a * b;
+      correctAnswer = coeff;
+      currentQuestion = `Derivative of ${a}x^${b}`;
+      document.getElementById("question").innerText = `Find the derivative of ${a}x^${b}. (Answer as coefficient of x^${b-1})`;
+    } else {
+      a = Math.floor(Math.random() * 5) + 2;
+      b = Math.floor(Math.random() * 4) + 1;
+      correctAnswer = Math.floor((a * a * b) / (b + 1));
+      currentQuestion = `Integral of ${a}x^${b}`;
+      document.getElementById("question").innerText = `Find ∫${a}x^${b}dx. (Answer as coefficient without +C)`;
+    }
+  }
+
+  document.getElementById("hint").innerText = "";
+  document.getElementById("hintUsed").innerText = "";
+  document.getElementById("status").innerText = "";
+  document.getElementById("status").className = "";
+  hintUsedCount = 0;
+}
+
+function updateHealth() {
+  document.getElementById("playerHealth").style.width = playerHP + "%";
+  document.getElementById("enemyHealth").style.width = enemyHP + "%";
+  
+  // Add pulsing animation for low health (below 20%)
+  const playerHealthBar = document.getElementById("playerHealth");
+  const enemyHealthBar = document.getElementById("enemyHealth");
+  
+  if (playerHP < 20) {
+    playerHealthBar.classList.add("low-health");
+  } else {
+    playerHealthBar.classList.remove("low-health");
+  }
+  
+  if (enemyHP < 20) {
+    enemyHealthBar.classList.add("low-health");
+  } else {
+    enemyHealthBar.classList.remove("low-health");
+  }
+}
+
+function shakeCharacter(isPlayer) {
+  const character = isPlayer ? document.getElementById("playerChar") : document.getElementById("enemyChar");
+  character.classList.remove('shake');
+  void character.offsetWidth;
+  character.classList.add('shake');
+}
+
+function submitAnswer() {
+  if (!gameActive) return;
+  
+  let userAnswer = document.getElementById("answer").value.trim();
+  let isCorrect = false;
+
+  if (typeof correctAnswer === 'string' && correctAnswer.includes('/')) {
+    isCorrect = (userAnswer === correctAnswer);
+  } else {
+    const userNum = parseFloat(userAnswer);
+    const correctNum = parseFloat(correctAnswer);
+    isCorrect = !isNaN(userNum) && Math.abs(userNum - correctNum) < 0.0001;
+  }
+
+  if (isCorrect) {
+    streak++;
+    questionsAnswered++;
+    let damage = 10 + (streak >= 3 ? 10 : 0);
+    enemyHP -= damage;
+
+    // YIPEEE! If they used a hint and still got it right!
+    let feedbackMsg = `🔥 Correct! You dealt ${damage} damage!`;
+    if (hintUsedCount > 0) {
+      feedbackMsg = `🎉 YIPEEE! YOU GOT IT! Amazing job using that hint! 🌟 You dealt ${damage} damage! Keep crushing it! 💯`;
+    }
+    
+    document.getElementById("feedback").innerText = feedbackMsg;
+    document.getElementById("status").innerText = "✅ Correct!";
+    document.getElementById("status").className = "correct";
+    document.getElementById("questionCounter").innerText = `Questions Answered: ${questionsAnswered}`;
+    shakeCharacter(false);
+  } else {
+    streak = 0;
+    questionsAnswered++;
+    playerHP -= 10;
+
+    document.getElementById("feedback").innerText = `❌ Wrong! The answer was ${correctAnswer}`;
+    document.getElementById("status").innerText = "❌ Incorrect!";
+    document.getElementById("status").className = "incorrect";
+    document.getElementById("questionCounter").innerText = `Questions Answered: ${questionsAnswered}`;
+    shakeCharacter(true);
+  }
+
+  document.getElementById("answer").value = "";
+  updateHealth();
+
+  if (playerHP <= 0) {
+    document.getElementById("question").innerText = "💀 You Lost!";
+    document.getElementById("playAgain").style.display = "inline-block";
+    gameActive = false;
+    shakeCharacter(true);
+    return;
+  }
+
+  if (enemyHP <= 0) {
+    document.getElementById("question").innerText = "🏆 You Win!";
+    document.getElementById("playAgain").style.display = "inline-block";
+    gameActive = false;
+    shakeCharacter(false);
+    triggerConfetti();
+    return;
+  }
+
+  setTimeout(() => {
+    generateQuestion();
+  }, 1500);
+}
+
+async function getHint() {
+  if (!gameActive) return;
+  
+  const hintElement = document.getElementById("hint");
+  hintElement.innerText = "Loading hint...";
+  hintUsedCount++;
+
+  try {
+    const response = await fetch("http://localhost:5000/hint", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        question: currentQuestion,
+        answer: correctAnswer,
+        category: currentCategory
+      })
+    });
+
+    const data = await response.json();
+    hintElement.innerText = data.hint;
+    document.getElementById("hintUsed").innerText = "⚠️ Hint used! Next correct answer: -5 damage";
+    window.hintPenalty = true;
+  } catch (error) {
+    hintElement.innerText = "❌ Could not get hint. Make sure server is running!";
+    console.error("Error:", error);
+  }
+}
+
+function triggerConfetti() {
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
+  
+  setTimeout(() => {
+    confetti({
+      particleCount: 50,
+      spread: 45,
+      origin: { x: 0.2, y: 0.2 }
+    });
+    confetti({
+      particleCount: 50,
+      spread: 45,
+      origin: { x: 0.8, y: 0.2 }
+    });
+  }, 200);
+}
+
+function resetGame() {
+  playerHP = 100;
+  enemyHP = 100;
+  streak = 0;
+  hintUsedCount = 0;
+  questionsAnswered = 0;
+  window.hintPenalty = false;
+  gameActive = false;
+  document.getElementById("playAgain").style.display = "none";
+  document.getElementById("answer").value = "";
+  document.getElementById("feedback").innerText = "";
+  document.getElementById("hint").innerText = "";
+  document.getElementById("hintUsed").innerText = "";
+  document.getElementById("status").innerText = "";
+  document.getElementById("status").className = "";
+  document.getElementById("questionCounter").innerText = `Questions Answered: 0`;
+  document.getElementById("playerChar").classList.remove('shake');
+  document.getElementById("enemyChar").classList.remove('shake');
+  updateHealth();
+}
+
+// Initial setup
+updateHealth();
+</script>
+
+</body>
+</html>
