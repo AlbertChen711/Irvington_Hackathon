@@ -230,38 +230,42 @@ i<!DOCTYPE html>
       padding: 30px;
       background: #1a2744;
       border-radius: 10px;
+      gap: 24px;
     }
-    .character {
-      width: 140px;
-      height: 140px;
+    .battle-scene {
+      width: min(560px, 58vw);
+      height: min(320px, 38vh);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0;
-      line-height: 0;
+      overflow: hidden;
+      border-radius: 10px;
+      border: 2px solid #475569;
+      background: #0b1220;
+      box-shadow: 0 12px 26px rgba(2, 6, 23, 0.55);
     }
-    .character img {
+    .battle-scene img {
       width: 100%;
       height: 100%;
       object-fit: contain;
       display: block;
     }
-    .character.shake {
+    .battle-scene.shake {
       animation: shake 0.5s;
     }
-    .character.anim-attack-player {
+    .battle-scene.anim-attack {
       animation: attackPlayer 0.55s ease;
     }
-    .character.anim-attack-enemy {
+    .battle-scene.anim-hurt {
       animation: attackEnemy 0.55s ease;
     }
-    .character.anim-hurt {
+    .battle-scene.anim-block {
       animation: hurtHit 0.5s ease;
     }
-    .character.anim-win {
+    .battle-scene.anim-win {
       animation: winBounce 0.8s ease;
     }
-    .character.anim-lose {
+    .battle-scene.anim-lose {
       animation: loseDrop 0.8s ease;
     }
     @keyframes attackPlayer {
@@ -294,11 +298,6 @@ i<!DOCTYPE html>
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-10px); }
       75% { transform: translateX(10px); }
-    }
-    .character-name {
-      font-size: 14px;
-      margin-top: 10px;
-      color: #ffd700;
     }
     #status {
       font-size: 32px;
@@ -452,26 +451,6 @@ i<!DOCTYPE html>
       0% { transform: scale(0.7); opacity: 0; }
       60% { transform: scale(1.06); opacity: 1; }
       100% { transform: scale(1); opacity: 1; }
-    }
-    #publicContribSection {
-      margin: 10px auto 14px auto;
-      max-width: 780px;
-      background: #132238;
-      border: 1px solid #355274;
-      border-radius: 10px;
-      padding: 12px;
-      text-align: left;
-    }
-    #publicContribSection h3 {
-      margin-bottom: 8px;
-      color: #fde68a;
-      font-size: 18px;
-    }
-    #publicContribText {
-      font-size: 14px;
-      color: #e2e8f0;
-      line-height: 1.45;
-      white-space: pre-line;
     }
     .about-us-toggle {
       position: fixed;
@@ -681,10 +660,6 @@ i<!DOCTYPE html>
     <button id="useDoubleBtn" class="power-btn" onclick="usePowerup('double')">Double Damage (0)</button>
     <button id="useSkipBtn" class="power-btn" onclick="usePowerup('skip')">Skip Solve (0)</button>
   </div>
-  <div id="publicContribSection">
-    <h3>Team Contributions</h3>
-    <p id="publicContribText"></p>
-  </div>
   <div id="aiStatus">AI hints/questions: checking backend...</div>
   <div id="turnIndicator"></div>
   <div id="timer"></div>
@@ -713,17 +688,15 @@ i<!DOCTYPE html>
 
     <div class="characters">
       <div class="health-container">
-        <div class="health-label">🧍 You</div>
+        <div class="health-label">You (Wizard)</div>
         <div class="bar"><div id="playerHealth" class="health" style="width: 100%"></div></div>
-        <div class="character" id="playerChar"><img id="playerCharImg" alt="Player"></div>
       </div>
-      <div style="text-align: center;">
-        <p style="font-size: 24px; margin-top: 50px;">⚡</p>
+      <div class="battle-scene" id="battleScene">
+        <img id="battleSceneImg" alt="Battle Animation">
       </div>
       <div class="health-container">
-        <div class="health-label">🤖 Enemy</div>
+        <div class="health-label">Enemy (Lizard)</div>
         <div class="bar"><div id="enemyHealth" class="health" style="width: 100%"></div></div>
-        <div class="character" id="enemyChar"><img id="enemyCharImg" alt="Enemy"></div>
       </div>
     </div>
   </div>
@@ -803,16 +776,19 @@ const PUBLIC_TEAM_CONTRIBUTIONS = [
   "- Designed responsive UI and quality-of-life gameplay fixes."
 ].join("\n");
 
-const SHARED_ANIMATION_URL = "https://ci3.googleusercontent.com/mail-img-att/AGAZnRpHkxDm4E2pvkteTijUcgaY6Z3rqg1yAS5X7PWoVOjzlKoEvZTz9a9fXQZ4B_J37DrGRJXat6FHk8_SsgFfN93oWscINx2ygKsJErgiUZh_Ls9CC3Tx7RwyUyd2oRZAEvf6RVfMne5zes5BVAjFe-ka-Y9l564KtrhPrYr60l3o_xEotfPQkTQtiu5YVYicd2pYfS3iP81JKHa8eRVUPjcpVCA2Qq42F-wacK8QzpqIbjmqrTMJE7ea9FeHf6o57QR_Q9DPaF72tLW-fUM6CdXqqavDrvZiOi5omxVWE0lMAKP0QA495wX1IU6PuGOxLGDNlPTzrkcIoRRZQeD8u3qyW3PjjRedS-4BC0WJagNMd9wr2jxlbLb1r7niCIsFNysV8ApjcYj_gKYUgxKqorFMkh-KsP8Zbo08T1UAZAF_P8F8JnK01yf-xg8ndEbW10TzKnJlTh8wdfZmV4UBVm-eKBT8DKVYT5_Ar_EnRGobgFEt46yjM0LeGUnmdcLGaZPtn5eKGs5gXH23pPOP_sB31sQaMRrjGbMop7sZNTD_AX2qt3G-LGKQ9OAzJWGvGzVq_Ln7TDD2x38c9075zu3QvpbSO75gGp5pE7qMiOEbXZA5AG6gUmtrhF55X80q8aopCnQ_ipgdBkoAUa8p3aH9rlxj8mouGiWxXKF3ysGfnjZoWiIhdrlk2ikVGD-IgsXGly8YATEtYWxE9Vyi5YnZXgaVMxNagcZ5TTvCX-8fO5zJLdykiU4VTgqF7OR4n9ZNhIBn0Ds4oEoc3sL203E6SBt3abtWQFqitx846tDzK3O0RijuOPYIhsNGbl9FPaUmVMbAsEt57iFREePhqePPCg9U1OVm3ucrb6yGGvigTVlhkrm_EaQduK__BnSNOk4ThQMqKV_kG04g0Fl37LHNZYliMD_ds6ecaeBl418GIjs-Xi-X9h_IqjyqoDsYqD5Hqbve_HKuNMpxJ2hf8JI_bH9nfEpg-8mSFcL73yRAjRNUPrRxQ4eLpbON_hG6XJtv4qo7JdWdF8heOKDG-ZA9SYwURDNZzObhBDVRhb6ZT-Zf=s0-l75-ft";
-const WIN_ANIMATION_URL = SHARED_ANIMATION_URL;
-const ATTACK_ANIMATION_URL = SHARED_ANIMATION_URL;
-const HURT_ANIMATION_URL = SHARED_ANIMATION_URL;
-const LOSE_ANIMATION_URL = SHARED_ANIMATION_URL;
-const IDLE_ANIMATION_URL = SHARED_ANIMATION_URL;
+const EVENT_ANIMATION_URL = "./Irvington_Hackathon/assets/ANIM_0322%20(5).gif";
+const IDLE_ANIMATION_URL = "./Irvington_Hackathon/assets/ANIM_0324.gif";
+const WIN_ANIMATION_URL = EVENT_ANIMATION_URL;
+const ATTACK_ANIMATION_URL = EVENT_ANIMATION_URL;
+const HURT_ANIMATION_URL = EVENT_ANIMATION_URL;
+const BLOCK_ANIMATION_URL = EVENT_ANIMATION_URL;
+const LOSE_ANIMATION_URL = EVENT_ANIMATION_URL;
 const FALLBACK_WIN_ANIMATION_URL = "https://dummyimage.com/420x220/e5e7eb/111827.png&text=winning";
 const FALLBACK_ATTACK_ANIMATION_URL = "https://dummyimage.com/420x220/dbeafe/1e3a8a.png&text=attack";
 const FALLBACK_HURT_ANIMATION_URL = "https://dummyimage.com/420x220/fee2e2/7f1d1d.png&text=hurt";
+const FALLBACK_BLOCK_ANIMATION_URL = "https://dummyimage.com/420x220/d1fae5/065f46.png&text=block";
 const FALLBACK_LOSE_ANIMATION_URL = "https://dummyimage.com/420x220/111827/f8fafc.png&text=lose";
+const EVENT_ANIMATION_DURATION_MS = 2200;
 
 let matchStats = {
   totalAttempts: 0,
@@ -1046,7 +1022,7 @@ function buyCharacter(charKey) {
   coins -= entry.cost;
   entry.unlocked = true;
   selectedCharacter = charKey;
-  setCharacterIdleImages();
+  setBattleIdleScene();
   document.getElementById("feedback").innerText = `✨ Unlocked ${entry.label}!`;
   updateMetaUI();
 }
@@ -1369,14 +1345,14 @@ function updateHealth() {
 }
 
 function shakeCharacter(isPlayer) {
-  const character = isPlayer ? document.getElementById("playerChar") : document.getElementById("enemyChar");
-  character.classList.remove('shake');
-  void character.offsetWidth;
-  character.classList.add('shake');
+  const battleScene = document.getElementById("battleScene");
+  battleScene.classList.remove("shake");
+  void battleScene.offsetWidth;
+  battleScene.classList.add("shake");
 }
 
-function setCharacterImage(characterElement, imageUrl, fallbackUrl) {
-  const sprite = characterElement.querySelector("img");
+function setBattleSceneImage(imageUrl, fallbackUrl) {
+  const sprite = document.getElementById("battleSceneImg");
   if (!sprite) return;
 
   sprite.onerror = () => {
@@ -1386,20 +1362,18 @@ function setCharacterImage(characterElement, imageUrl, fallbackUrl) {
   };
 
   sprite.dataset.usedFallback = "0";
-  sprite.src = imageUrl;
+  const sep = imageUrl.includes("?") ? "&" : "?";
+  sprite.src = `${imageUrl}${sep}frame=${Date.now()}`;
 }
 
-function setCharacterIdleImages() {
-  setCharacterImage(document.getElementById("playerChar"), IDLE_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
-  setCharacterImage(document.getElementById("enemyChar"), IDLE_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
+function setBattleIdleScene() {
+  setBattleSceneImage(IDLE_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
 }
 
-function clearCharacterActionClasses() {
-  const playerChar = document.getElementById("playerChar");
-  const enemyChar = document.getElementById("enemyChar");
-  ["anim-attack-player", "anim-attack-enemy", "anim-hurt", "anim-win", "anim-lose", "shake"].forEach((cls) => {
-    playerChar.classList.remove(cls);
-    enemyChar.classList.remove(cls);
+function clearBattleActionClasses() {
+  const battleScene = document.getElementById("battleScene");
+  ["anim-attack", "anim-hurt", "anim-block", "anim-win", "anim-lose", "shake"].forEach((cls) => {
+    battleScene.classList.remove(cls);
   });
 }
 
@@ -1480,6 +1454,7 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
       if (isCorrect) {
         blockCombo += 1;
         pendingAttackMultiplier = clampValue(1 + blockCombo * 0.25, 1, 3);
+        playActionAnimation("block");
         document.getElementById("feedback").innerText = usedSkip
           ? "⏭️ Skip used! Enemy attack blocked."
           : "🛡️ Perfect block! No damage taken.";
@@ -1621,33 +1596,30 @@ async function getHint() {
   document.getElementById("hintUsed").innerText = "⚠️ Hint used! You got a helpful tip!";
 }
 function playActionAnimation(actionType) {
-  const playerChar = document.getElementById("playerChar");
-  const enemyChar = document.getElementById("enemyChar");
-
-  clearCharacterActionClasses();
+  const battleScene = document.getElementById("battleScene");
+  clearBattleActionClasses();
 
   if (actionType === "attack") {
-    setCharacterImage(playerChar, ATTACK_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
-    setCharacterImage(enemyChar, HURT_ANIMATION_URL, FALLBACK_HURT_ANIMATION_URL);
-    playerChar.classList.add("anim-attack-player");
-    enemyChar.classList.add("anim-hurt");
+    setBattleSceneImage(ATTACK_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
+    battleScene.classList.add("anim-attack");
   } else if (actionType === "hurt") {
-    setCharacterImage(enemyChar, ATTACK_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
-    setCharacterImage(playerChar, HURT_ANIMATION_URL, FALLBACK_HURT_ANIMATION_URL);
-    enemyChar.classList.add("anim-attack-enemy");
-    playerChar.classList.add("anim-hurt");
+    setBattleSceneImage(HURT_ANIMATION_URL, FALLBACK_HURT_ANIMATION_URL);
+    battleScene.classList.add("anim-hurt");
+  } else if (actionType === "block") {
+    setBattleSceneImage(BLOCK_ANIMATION_URL, FALLBACK_BLOCK_ANIMATION_URL);
+    battleScene.classList.add("anim-block");
   } else if (actionType === "lose") {
-    setCharacterImage(playerChar, LOSE_ANIMATION_URL, FALLBACK_LOSE_ANIMATION_URL);
-    playerChar.classList.add("anim-lose");
+    setBattleSceneImage(LOSE_ANIMATION_URL, FALLBACK_LOSE_ANIMATION_URL);
+    battleScene.classList.add("anim-lose");
   } else {
-    setCharacterImage(playerChar, WIN_ANIMATION_URL, FALLBACK_WIN_ANIMATION_URL);
-    playerChar.classList.add("anim-win");
+    setBattleSceneImage(WIN_ANIMATION_URL, FALLBACK_WIN_ANIMATION_URL);
+    battleScene.classList.add("anim-win");
   }
 
   setTimeout(() => {
-    clearCharacterActionClasses();
-    setCharacterIdleImages();
-  }, 850);
+    clearBattleActionClasses();
+    setBattleIdleScene();
+  }, EVENT_ANIMATION_DURATION_MS);
 }
 
 function resetGame() {
@@ -1682,9 +1654,8 @@ function resetGame() {
   document.getElementById("status").className = "";
   document.getElementById("analytics").style.display = "none";
   document.getElementById("questionCounter").innerText = `Questions Answered: 0`;
-  document.getElementById("playerChar").classList.remove('shake');
-  document.getElementById("enemyChar").classList.remove('shake');
-  setCharacterIdleImages();
+  clearBattleActionClasses();
+  setBattleIdleScene();
   updateHealth();
   updateTurnIndicator();
   updateMetaUI();
@@ -1706,16 +1677,29 @@ function toggleTeamContributions() {
 }
 
 function renderPublicContributions() {
-  document.getElementById("publicContribText").innerText = PUBLIC_TEAM_CONTRIBUTIONS;
   document.getElementById("aboutContribText").innerText = PUBLIC_TEAM_CONTRIBUTIONS;
   document.getElementById("teamContribText").innerText = PUBLIC_TEAM_CONTRIBUTIONS;
+}
+
+async function checkAiStatus() {
+  const aiStatusEl = document.getElementById("aiStatus");
+  try {
+    const response = await fetch("http://127.0.0.1:5000/ai_status");
+    if (!response.ok) throw new Error("status endpoint failed");
+    const data = await response.json();
+    aiStatusEl.innerText = data.configured
+      ? "AI hints/questions: online"
+      : "AI hints/questions: backend running but key missing";
+  } catch (error) {
+    aiStatusEl.innerText = "AI hints/questions: backend offline, fallback mode";
+  }
 }
 
 // Initial setup
 updateHealth();
 resetGame();
 renderPublicContributions();
-document.getElementById("aiStatus").innerText = "AI hints/questions: use the backend if it is running, otherwise fallback is active.";
+checkAiStatus();
 </script>
 
 </body>

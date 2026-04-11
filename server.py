@@ -1,1 +1,149 @@
-from flask import Flask, request, jsonify, send_file\nfrom flask_cors import CORS\nfrom openai import OpenAI\nimport traceback\nimport os\napp = Flask(__name__)\nCORS(app)\n\n# Initialize OpenAI client with your API key\nclient = OpenAI(api_key=os.getenv("OPEN_AI_KEY"))\n\n# Track the current question to prevent duplicate submissions\ncurrent_question_id = None\n\n@app.route("/")\ndef home():\n    return send_file("index.html")\n\n@app.route("/hint", methods=["POST"])\ndef hint():\n    data = request.get_json()\n    question = data.get("question", "")\n    answer = data.get("answer", "")\n    category = data.get("category", "Math Problem")\n\n    try:\n        # Use OpenAI API to generate an encouraging, specific hint\n        print(f"Requesting hint for: {question} (Category: {category})")\n        \n        response = client.chat.completions.create(\n            model="gpt-4o-mini",\n            messages=[\n                {\n                    "role": "system",\n                    "content": "You are a friendly, encouraging math tutor. Give SHORT hints (max 2 sentences) without revealing the answer. Use emojis and be supportive!"\n                },\n                {\n                    "role": "user",\n                    "content": f"{category} problem: {question}\nGive a hint to help solve it. Be brief!"\n                }\n            ],\n            temperature=0.7,\n            max_tokens=80\n        )\n        \n        hint_text = response.choices[0].message.content\n        print(f"API Success: {hint_text}")\n    except Exception as e:\n        # Fallback to mock hints if API fails\n        print(f"API Error occurred: {str(e)}")\n        print(traceback.format_exc())\n        hint_text = f"💡 Break the problem into smaller steps. You've got this! 🌟"\n\n    return jsonify({"hint": hint_text})\n\n@app.route("/submit_answer", methods=["POST"])\ndef submit_answer():\n    global current_question_id\n    data = request.get_json()\n    question_id = data.get("question_id")\n    answer = data.get("answer", "")\n    \n    # Check if this is the same question being submitted again\n    if question_id == current_question_id:\n        return jsonify({"error": "Already submitted for this question. Waiting for next question..."}), 400\n    \n    # Update the current question ID\n    current_question_id = question_id\n    \n    print(f"Answer submitted for question {question_id}: {answer}")\n    \n    # Process the answer (your existing logic here)\n    return jsonify({"success": True, "message": "Answer submitted! Loading next question..."})\n\n@app.route("/next_question", methods=["POST"])\ndef next_question():\n    global current_question_id\n    # Reset the question ID when a new question is loaded\n    current_question_id = None\n    return jsonify({"success": True})\n\nif __name__ == "__main__":\n    app.run(port=5000, debug=False)\n
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+from openai import OpenAI
+import json
+import os
+import traceback
+
+app = Flask(__name__)
+CORS(app)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+KEY_CANDIDATES = [
+    os.path.join(BASE_DIR, "OPEN_AI_KEY.txt"),
+    os.path.join(BASE_DIR, "Irvington_Hackathon", "OPEN_AI_KEY.txt"),
+]
+
+
+def load_api_key():
+    for env_name in ("OPEN_AI_KEY", "OPENAI_API_KEY"):
+        env_value = os.getenv(env_name)
+        if env_value:
+            return env_value.strip()
+
+    for key_file in KEY_CANDIDATES:
+        if os.path.exists(key_file):
+            with open(key_file, "r", encoding="utf-8") as file:
+                file_value = file.read().strip()
+                if file_value and not file_value.startswith("SET_YOUR_OPENAI_API_KEY"):
+                    return file_value
+
+    return None
+
+
+api_key = load_api_key()
+client = OpenAI(api_key=api_key) if api_key else None
+
+
+@app.route("/")
+def home():
+    return send_file(os.path.join(BASE_DIR, "index.html"))
+
+
+@app.route("/ai_status", methods=["GET"])
+def ai_status():
+    return jsonify({"configured": client is not None})
+
+
+@app.route("/hint", methods=["POST"])
+def hint():
+    data = request.get_json(silent=True) or {}
+    question = data.get("question", "")
+    category = data.get("category", "Math Problem")
+
+    try:
+        if client is None:
+            raise RuntimeError("OpenAI client is not configured")
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Return JSON only with key 'hint'. Give one short, supportive hint "
+                        "without revealing the final answer."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Category: {category}\nProblem: {question}",
+                },
+            ],
+            temperature=0.7,
+            max_tokens=100,
+        )
+
+        raw_text = response.choices[0].message.content.strip()
+        parsed = json.loads(raw_text)
+        hint_text = str(parsed.get("hint", "")).strip() or "💡 Try one step at a time."
+        return jsonify({"hint": hint_text})
+    except Exception as exc:
+        print(f"Hint API error: {exc}")
+        print(traceback.format_exc())
+        return jsonify({
+            "hint": "💡 Break the problem into smaller steps. You've got this! 🌟",
+            "fallback": True,
+        })
+
+
+@app.route("/question", methods=["POST"])
+def question():
+    data = request.get_json(silent=True) or {}
+    category = data.get("category", "addition")
+    difficulty = data.get("difficulty", "easy")
+    mode = data.get("mode", "classic")
+    turn = data.get("turn", "player")
+
+    try:
+        if client is None:
+            raise RuntimeError("OpenAI client is not configured")
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Return JSON only with keys: question and answer. "
+                        "Question should be a short math prompt. "
+                        "Answer should be a number or simple fraction string."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Create one {difficulty} {category} question for {mode} mode, {turn} turn."
+                    ),
+                },
+            ],
+            temperature=0.6,
+            max_tokens=180,
+        )
+
+        raw_text = response.choices[0].message.content.strip()
+        parsed = json.loads(raw_text)
+
+        question_text = str(parsed.get("question", "")).strip()
+        answer = str(parsed.get("answer", "")).strip()
+        if not question_text or not answer:
+            raise ValueError("Question payload missing fields")
+
+        return jsonify({
+            "question": question_text,
+            "answer": answer,
+            "category": category,
+            "difficulty": difficulty,
+            "mode": mode,
+            "turn": turn,
+        })
+    except Exception as exc:
+        print(f"Question API error: {exc}")
+        print(traceback.format_exc())
+        return jsonify({"error": "OpenAI question generation failed", "fallback": True}), 500
+
+
+if __name__ == "__main__":
+    app.run(port=5000, debug=False)

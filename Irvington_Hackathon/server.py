@@ -31,6 +31,13 @@ api_key = load_api_key()
 client = OpenAI(api_key=api_key) if api_key else None
 
 
+@app.route("/ai_status", methods=["GET"])
+def ai_status():
+    return jsonify({
+        "configured": client is not None,
+    })
+
+
 @app.route("/")
 def home():
     return send_file(os.path.abspath(os.path.join(BASE_DIR, "..", "index.html")))
@@ -66,7 +73,9 @@ def hint():
             max_tokens=80,
         )
 
-        hint_text = response.choices[0].message.content.strip()
+        raw_text = response.choices[0].message.content.strip()
+        parsed = json.loads(raw_text)
+        hint_text = str(parsed.get("hint", "")).strip() or "💡 Try one small step at a time."
         return jsonify({"hint": hint_text})
     except Exception as exc:
         print(f"Hint API error: {exc}")
@@ -91,6 +100,7 @@ def question():
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
+            response_format={"type": "json_object"},
             messages=[
                 {
                     "role": "system",
