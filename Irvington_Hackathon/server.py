@@ -9,12 +9,14 @@ CORS(app)
 # Initialize OpenAI client with your API key
 client = OpenAI(api_key=os.getenv("OPEN_AI_KEY"))
 
+# Track the current question to prevent duplicate submissions
+current_question_id = None
+
 @app.route("/")
 def home():
     return send_file("index.html")
 
-@app.route("/hint", methods=["POST"])
-def hint():
+@app.route("/hint", methods=["POST"])\ndef hint():
     data = request.get_json()
     question = data.get("question", "")
     answer = data.get("answer", "")
@@ -49,6 +51,30 @@ def hint():
         hint_text = f"💡 Break the problem into smaller steps. You've got this! 🌟"
 
     return jsonify({"hint": hint_text})
+
+@app.route("/submit_answer", methods=["POST"])\ndef submit_answer():
+    global current_question_id
+    data = request.get_json()
+    question_id = data.get("question_id")
+    answer = data.get("answer", "")
+    
+    # Check if this is the same question being submitted again
+    if question_id == current_question_id:
+        return jsonify({"error": "Already submitted for this question. Waiting for next question..."}), 400
+    
+    # Update the current question ID
+    current_question_id = question_id
+    
+    print(f"Answer submitted for question {question_id}: {answer}")
+    
+    # Process the answer (your existing logic here)
+    return jsonify({"success": True, "message": "Answer submitted! Loading next question..."})
+
+@app.route("/next_question", methods=["POST"])\ndef next_question():
+    global current_question_id
+    # Reset the question ID when a new question is loaded
+    current_question_id = None
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
     app.run(port=5000, debug=False)
