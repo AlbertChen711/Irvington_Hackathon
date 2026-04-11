@@ -283,6 +283,92 @@
       margin-bottom: 15px;
       font-weight: bold;
     }
+    .mode-switch {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .mode-btn {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #64748b;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .mode-btn.active {
+      background: #f59e0b;
+      color: #0f172a;
+      font-weight: bold;
+      border-color: #f59e0b;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+    }
+    #turnIndicator {
+      font-size: 16px;
+      color: #93c5fd;
+      min-height: 24px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .meta-row {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .meta-card {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: #e2e8f0;
+      min-width: 150px;
+    }
+    .powerups {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .power-btn {
+      background: #0ea5e9;
+      font-size: 14px;
+      padding: 8px 12px;
+      margin: 0;
+    }
+    .power-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    #timer {
+      color: #fbbf24;
+      font-weight: bold;
+      min-height: 22px;
+      margin-bottom: 8px;
+    }
+    #analytics {
+      margin-top: 18px;
+      background: #1a2744;
+      border: 1px solid #4a7c99;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: left;
+      display: none;
+    }
+    #analytics h3 {
+      margin-bottom: 10px;
+      color: #fde68a;
+    }
+    #analytics p {
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
   </style>
 </head>
 
@@ -367,6 +453,25 @@
 <div class="main">
   <h1>⚔️ Numeracy Arena</h1>
   <div id="questionCounter">Questions Answered: 0</div>
+  <div class="meta-row">
+    <div id="enemyTypeDisplay" class="meta-card">Enemy: Standard</div>
+    <div id="coinsDisplay" class="meta-card">Coins: 0</div>
+    <div id="characterDisplay" class="meta-card">Character: Wizard</div>
+    <div id="comboDisplay" class="meta-card">Block Combo: x1.0</div>
+  </div>
+  <div class="mode-switch">
+    <button id="classicModeBtn" class="mode-btn active" onclick="setGameMode('classic')">Classic Mode</button>
+    <button id="speedModeBtn" class="mode-btn" onclick="setGameMode('speed')">Speed Mode (Turn-Based)</button>
+  </div>
+  <div class="powerups">
+    <button id="buyKnightBtn" class="power-btn" onclick="buyCharacter('knight')">Buy Knight (60)</button>
+    <button id="buyNinjaBtn" class="power-btn" onclick="buyCharacter('ninja')">Buy Ninja (90)</button>
+    <button id="useShieldBtn" class="power-btn" onclick="usePowerup('shield')">Shield (0)</button>
+    <button id="useDoubleBtn" class="power-btn" onclick="usePowerup('double')">Double Damage (0)</button>
+    <button id="useSkipBtn" class="power-btn" onclick="usePowerup('skip')">Skip Solve (0)</button>
+  </div>
+  <div id="turnIndicator"></div>
+  <div id="timer"></div>
   <div id="status"></div>
 
   <div class="play-again-container">
@@ -383,6 +488,12 @@
     <p id="feedback"></p>
     <p id="hint"></p>
     <p id="hintUsed"></p>
+    <div id="analytics">
+      <h3>Match Analytics</h3>
+      <p id="analyticsAccuracy">Accuracy: -</p>
+      <p id="analyticsAvgTime">Average Response Time: -</p>
+      <p id="analyticsWeakest">Weakest Topic: -</p>
+    </div>
 
     <div class="characters">
       <div class="health-container">
@@ -414,6 +525,233 @@ let currentCategory = "addition";
 let currentDifficulty = "easy";
 let currentQuestion = "";
 let gameActive = false;
+let gameMode = "classic";
+let currentTurn = "player";
+let questionLocked = false;
+let activeQuestionId = 0;
+let questionStartedAt = 0;
+let timerRemaining = 0;
+let timerInterval = null;
+let pendingTimerTimeout = null;
+
+let blockCombo = 0;
+let pendingAttackMultiplier = 1;
+let shieldActive = false;
+let nextAttackDouble = false;
+
+let coins = 0;
+const characters = {
+  wizard: { emoji: "🧙‍♂️", label: "Wizard", cost: 0, unlocked: true },
+  knight: { emoji: "🛡️", label: "Knight", cost: 60, unlocked: false },
+  ninja: { emoji: "🥷", label: "Ninja", cost: 90, unlocked: false }
+};
+let selectedCharacter = "wizard";
+
+let powerups = {
+  shield: 0,
+  double: 0,
+  skip: 0
+};
+
+const enemyTypes = {
+  standard: { label: "Standard", hp: 100, dmgMult: 1.0, tricksterBoost: 0 },
+  berserker: { label: "Berserker", hp: 80, dmgMult: 1.5, tricksterBoost: 0 },
+  tank: { label: "Tank", hp: 130, dmgMult: 0.8, tricksterBoost: 0 },
+  trickster: { label: "Trickster", hp: 95, dmgMult: 1.1, tricksterBoost: 1 }
+};
+let currentEnemyType = "standard";
+
+let matchStats = {
+  totalAttempts: 0,
+  correctAttempts: 0,
+  totalResponseMs: 0,
+  responseCount: 0,
+  perCategory: {}
+};
+
+function clampValue(v, min, max) {
+  return Math.min(max, Math.max(min, v));
+}
+
+function getEffectiveDifficulty() {
+  if (currentEnemyType !== "trickster" || gameMode !== "speed") return currentDifficulty;
+  if (currentDifficulty === "easy") return "medium";
+  if (currentDifficulty === "medium") return "hard";
+  return "hard";
+}
+
+function updateMetaUI() {
+  const enemyLabel = enemyTypes[currentEnemyType].label;
+  document.getElementById("enemyTypeDisplay").innerText = `Enemy: ${enemyLabel}`;
+  document.getElementById("coinsDisplay").innerText = `Coins: ${coins}`;
+  document.getElementById("characterDisplay").innerText = `Character: ${characters[selectedCharacter].label}`;
+  document.getElementById("comboDisplay").innerText = `Block Combo: x${pendingAttackMultiplier.toFixed(1)}`;
+  document.getElementById("useShieldBtn").innerText = `Shield (${powerups.shield})`;
+  document.getElementById("useDoubleBtn").innerText = `Double Damage (${powerups.double})`;
+  document.getElementById("useSkipBtn").innerText = `Skip Solve (${powerups.skip})`;
+
+  document.getElementById("buyKnightBtn").disabled = characters.knight.unlocked;
+  document.getElementById("buyNinjaBtn").disabled = characters.ninja.unlocked;
+  document.getElementById("useShieldBtn").disabled = powerups.shield <= 0 || !gameActive;
+  document.getElementById("useDoubleBtn").disabled = powerups.double <= 0 || !gameActive;
+  document.getElementById("useSkipBtn").disabled = powerups.skip <= 0 || !gameActive;
+}
+
+function pickEnemyType() {
+  const enemyKeys = Object.keys(enemyTypes);
+  currentEnemyType = enemyKeys[Math.floor(Math.random() * enemyKeys.length)];
+}
+
+function setGameMode(mode) {
+  gameMode = mode;
+  document.getElementById("classicModeBtn").classList.toggle("active", mode === "classic");
+  document.getElementById("speedModeBtn").classList.toggle("active", mode === "speed");
+  currentTurn = "player";
+  updateTurnIndicator();
+
+  if (gameActive) {
+    clearQuestionLocks();
+    generateQuestion();
+  }
+}
+
+function updateTurnIndicator() {
+  const turnIndicator = document.getElementById("turnIndicator");
+  if (!gameActive) {
+    turnIndicator.innerText = gameMode === "speed" ? "Speed Mode: Waiting for first question." : "";
+    return;
+  }
+
+  if (gameMode === "speed") {
+    turnIndicator.innerText = currentTurn === "player"
+      ? "🗡️ Your Turn: Solve to attack."
+      : "🛡️ Enemy Turn: Solve to block incoming attack.";
+  } else {
+    turnIndicator.innerText = "";
+  }
+}
+
+function getEnemyDamage() {
+  let base;
+  if (currentDifficulty === "easy") base = 8;
+  else if (currentDifficulty === "medium") base = 12;
+  else base = 16;
+  return Math.round(base * enemyTypes[currentEnemyType].dmgMult);
+}
+
+function clearQuestionLocks() {
+  questionLocked = false;
+  document.querySelector("button.attack").disabled = false;
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  if (pendingTimerTimeout) {
+    clearTimeout(pendingTimerTimeout);
+    pendingTimerTimeout = null;
+  }
+  document.getElementById("timer").innerText = "";
+}
+
+function startTurnTimer(questionId) {
+  if (gameMode !== "speed") return;
+  timerRemaining = Math.floor(Math.random() * 5) + 8;
+  document.getElementById("timer").innerText = `⏱️ ${timerRemaining}s remaining`;
+
+  timerInterval = setInterval(() => {
+    timerRemaining -= 1;
+    if (timerRemaining >= 0) {
+      document.getElementById("timer").innerText = `⏱️ ${timerRemaining}s remaining`;
+    }
+  }, 1000);
+
+  pendingTimerTimeout = setTimeout(() => {
+    if (!gameActive || questionLocked || questionId !== activeQuestionId) return;
+    processAnswer(false, true, questionId, "");
+  }, timerRemaining * 1000);
+}
+
+function recordAttemptStats(isCorrect, responseMs) {
+  const category = currentCategory;
+  if (!matchStats.perCategory[category]) {
+    matchStats.perCategory[category] = { attempts: 0, correct: 0 };
+  }
+  matchStats.totalAttempts += 1;
+  if (isCorrect) matchStats.correctAttempts += 1;
+  matchStats.totalResponseMs += responseMs;
+  matchStats.responseCount += 1;
+  matchStats.perCategory[category].attempts += 1;
+  if (isCorrect) matchStats.perCategory[category].correct += 1;
+}
+
+function showAnalytics() {
+  const accuracy = matchStats.totalAttempts > 0
+    ? ((matchStats.correctAttempts / matchStats.totalAttempts) * 100).toFixed(1)
+    : "0.0";
+  const avgMs = matchStats.responseCount > 0
+    ? Math.round(matchStats.totalResponseMs / matchStats.responseCount)
+    : 0;
+
+  let weakestTopic = "N/A";
+  let weakestScore = 101;
+  Object.keys(matchStats.perCategory).forEach(cat => {
+    const data = matchStats.perCategory[cat];
+    if (data.attempts === 0) return;
+    const pct = (data.correct / data.attempts) * 100;
+    if (pct < weakestScore) {
+      weakestScore = pct;
+      weakestTopic = `${cat} (${pct.toFixed(1)}%)`;
+    }
+  });
+
+  document.getElementById("analyticsAccuracy").innerText = `Accuracy: ${accuracy}% (${matchStats.correctAttempts}/${matchStats.totalAttempts})`;
+  document.getElementById("analyticsAvgTime").innerText = `Average Response Time: ${(avgMs / 1000).toFixed(2)}s`;
+  document.getElementById("analyticsWeakest").innerText = `Weakest Topic: ${weakestTopic}`;
+  document.getElementById("analytics").style.display = "block";
+}
+
+function rewardMatch(isWin) {
+  const baseCoins = isWin ? 35 : 12;
+  const performanceBonus = Math.floor((matchStats.correctAttempts || 0) * 1.5);
+  coins += baseCoins + performanceBonus;
+
+  if (isWin) {
+    powerups.shield += 1;
+    powerups.double += 1;
+    powerups.skip += 1;
+  }
+  updateMetaUI();
+}
+
+function buyCharacter(charKey) {
+  const entry = characters[charKey];
+  if (!entry || entry.unlocked || coins < entry.cost) return;
+  coins -= entry.cost;
+  entry.unlocked = true;
+  selectedCharacter = charKey;
+  document.getElementById("playerChar").innerText = entry.emoji;
+  document.getElementById("feedback").innerText = `✨ Unlocked ${entry.label}!`;
+  updateMetaUI();
+}
+
+function usePowerup(kind) {
+  if (!gameActive || powerups[kind] <= 0) return;
+
+  if (kind === "shield") {
+    shieldActive = true;
+    powerups.shield -= 1;
+    document.getElementById("feedback").innerText = "🛡️ Shield activated for the next enemy hit.";
+  } else if (kind === "double") {
+    nextAttackDouble = true;
+    powerups.double -= 1;
+    document.getElementById("feedback").innerText = "⚔️ Double damage ready for your next successful attack.";
+  } else if (kind === "skip") {
+    powerups.skip -= 1;
+    processAnswer(true, false, activeQuestionId, "", true);
+  }
+
+  updateMetaUI();
+}
 
 function selectCategory(category, buttonElement) {
   currentCategory = category;
@@ -451,14 +789,20 @@ function setDifficulty(category, difficulty) {
 function generateQuestion() {
   let a, b;
   gameActive = true;
+  questionLocked = false;
+  activeQuestionId += 1;
+  questionStartedAt = Date.now();
+  document.querySelector("button.attack").disabled = false;
   document.getElementById("answer").value = "";
   document.getElementById("feedback").innerText = "";
 
+  const effectiveDifficulty = getEffectiveDifficulty();
+
   if (currentCategory === "addition") {
-    if (currentDifficulty === "easy") {
+    if (effectiveDifficulty === "easy") {
       a = Math.floor(Math.random() * 5);
       b = Math.floor(Math.random() * 5);
-    } else if (currentDifficulty === "medium") {
+    } else if (effectiveDifficulty === "medium") {
       a = Math.floor(Math.random() * 20) + 10;
       b = Math.floor(Math.random() * 20) + 10;
     } else {
@@ -470,10 +814,10 @@ function generateQuestion() {
     document.getElementById("question").innerText = `${a} + ${b} = ?`;
     
   } else if (currentCategory === "subtraction") {
-    if (currentDifficulty === "easy") {
+    if (effectiveDifficulty === "easy") {
       a = Math.floor(Math.random() * 10);
       b = Math.floor(Math.random() * 5);
-    } else if (currentDifficulty === "medium") {
+    } else if (effectiveDifficulty === "medium") {
       a = Math.floor(Math.random() * 30) + 20;
       b = Math.floor(Math.random() * 20) + 5;
     } else {
@@ -485,10 +829,10 @@ function generateQuestion() {
     document.getElementById("question").innerText = `${a} - ${b} = ?`;
     
   } else if (currentCategory === "multiplication") {
-    if (currentDifficulty === "easy") {
+    if (effectiveDifficulty === "easy") {
       a = Math.floor(Math.random() * 5) + 1;
       b = Math.floor(Math.random() * 5) + 1;
-    } else if (currentDifficulty === "medium") {
+    } else if (effectiveDifficulty === "medium") {
       a = Math.floor(Math.random() * 12) + 1;
       b = Math.floor(Math.random() * 12) + 1;
     } else {
@@ -501,10 +845,10 @@ function generateQuestion() {
     
   } else if (currentCategory === "fractions") {
     let maxNum, maxDen;
-    if (currentDifficulty === "easy") {
+    if (effectiveDifficulty === "easy") {
       maxNum = 3;
       maxDen = 3;
-    } else if (currentDifficulty === "medium") {
+    } else if (effectiveDifficulty === "medium") {
       maxNum = 9;
       maxDen = 9;
     } else {
@@ -539,10 +883,10 @@ function generateQuestion() {
     
   } else if (currentCategory === "decimals") {
     let max1, max2;
-    if (currentDifficulty === "easy") {
+    if (effectiveDifficulty === "easy") {
       max1 = 5;
       max2 = 5;
-    } else if (currentDifficulty === "medium") {
+    } else if (effectiveDifficulty === "medium") {
       max1 = 20;
       max2 = 20;
     } else {
@@ -571,10 +915,10 @@ function generateQuestion() {
     
   } else if (currentCategory === "algebra") {
     let maxCoef, maxResult;
-    if (currentDifficulty === "easy") {
+    if (effectiveDifficulty === "easy") {
       maxCoef = 5;
       maxResult = 5;
-    } else if (currentDifficulty === "medium") {
+    } else if (effectiveDifficulty === "medium") {
       maxCoef = 12;
       maxResult = 10;
     } else {
@@ -591,7 +935,7 @@ function generateQuestion() {
     const shapes = ["rectangle", "circle", "triangle"];
     let shape = shapes[Math.floor(Math.random() * shapes.length)];
     
-    if (currentDifficulty === "easy") {
+    if (effectiveDifficulty === "easy") {
       if (shape === "rectangle") {
         a = Math.floor(Math.random() * 10) + 3;
         b = Math.floor(Math.random() * 10) + 3;
@@ -610,7 +954,7 @@ function generateQuestion() {
         currentQuestion = `Triangle area: ${a} × ${b}/2`;
         document.getElementById("question").innerText = `Triangle with base ${a} and height ${b}. Find the area.`;
       }
-    } else if (currentDifficulty === "medium") {
+    } else if (effectiveDifficulty === "medium") {
       if (shape === "rectangle") {
         a = Math.floor(Math.random() * 15) + 8;
         b = Math.floor(Math.random() * 15) + 8;
@@ -652,13 +996,13 @@ function generateQuestion() {
     }
     
   } else if (currentCategory === "calculus") {
-    if (currentDifficulty === "easy") {
+    if (effectiveDifficulty === "easy") {
       const powers = [2, 3, 4, 5];
       a = powers[Math.floor(Math.random() * powers.length)];
       correctAnswer = a;
       currentQuestion = `Derivative of x^${a}`;
       document.getElementById("question").innerText = `Find the derivative of x^${a}. (Answer as coefficient only)`;
-    } else if (currentDifficulty === "medium") {
+    } else if (effectiveDifficulty === "medium") {
       a = Math.floor(Math.random() * 4) + 2;
       b = Math.floor(Math.random() * 3) + 1;
       const coeff = a * b;
@@ -678,6 +1022,15 @@ function generateQuestion() {
   document.getElementById("hintUsed").innerText = "";
   document.getElementById("status").innerText = "";
   document.getElementById("status").className = "";
+  if (gameMode === "speed") {
+    const prefix = currentTurn === "player"
+      ? "🗡️ Your turn: Solve to attack!\n"
+      : "🛡️ Enemy turn: Solve to block!\n";
+    document.getElementById("question").innerText = prefix + document.getElementById("question").innerText;
+    startTurnTimer(activeQuestionId);
+  }
+  updateTurnIndicator();
+  updateMetaUI();
   hintUsedCount = 0;
 }
 
@@ -709,56 +1062,112 @@ function shakeCharacter(isPlayer) {
   character.classList.add('shake');
 }
 
-function submitAnswer() {
-  if (!gameActive) return;
-  
-  let userAnswer = document.getElementById("answer").value.trim();
-  let isCorrect = false;
+function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, usedSkip) {
+  if (!gameActive || questionLocked || questionIdAtAnswer !== activeQuestionId) return;
 
-  if (typeof correctAnswer === 'string' && correctAnswer.includes('/')) {
-    isCorrect = (userAnswer === correctAnswer);
-  } else {
-    const userNum = parseFloat(userAnswer);
-    const correctNum = parseFloat(correctAnswer);
-    isCorrect = !isNaN(userNum) && Math.abs(userNum - correctNum) < 0.0001;
-  }
+  questionLocked = true;
+  document.querySelector("button.attack").disabled = true;
+  clearQuestionLocks();
+  questionLocked = true;
+  document.querySelector("button.attack").disabled = true;
 
-  if (isCorrect) {
-    streak++;
-    questionsAnswered++;
-    let damage = 10 + (streak >= 3 ? 10 : 0);
-    enemyHP -= damage;
+  const responseMs = Date.now() - questionStartedAt;
+  recordAttemptStats(isCorrect, responseMs);
 
-    // YIPEEE! If they used a hint and still got it right!
-    let feedbackMsg = `🔥 Correct! You dealt ${damage} damage!`;
-    if (hintUsedCount > 0) {
-      feedbackMsg = `🎉 YIPEEE! YOU GOT IT! Amazing job using that hint! 🌟 You dealt ${damage} damage! Keep crushing it! 💯`;
+  questionsAnswered++;
+  document.getElementById("questionCounter").innerText = `Questions Answered: ${questionsAnswered}`;
+
+  if (gameMode === "classic") {
+    if (isCorrect) {
+      streak++;
+      let damage = 10 + (streak >= 3 ? 10 : 0);
+      enemyHP -= damage;
+      let feedbackMsg = `🔥 Correct! You dealt ${damage} damage!`;
+      if (hintUsedCount > 0) {
+        feedbackMsg = `🎉 YIPEEE! YOU GOT IT! Amazing job using that hint! 🌟 You dealt ${damage} damage! Keep crushing it! 💯`;
+      }
+      document.getElementById("feedback").innerText = feedbackMsg;
+      document.getElementById("status").innerText = "✅ Correct!";
+      document.getElementById("status").className = "correct";
+      shakeCharacter(false);
+    } else {
+      streak = 0;
+      playerHP -= 10;
+      document.getElementById("feedback").innerText = isTimeout
+        ? `⌛ Time's up! The answer was ${correctAnswer}`
+        : `❌ Wrong! The answer was ${correctAnswer}`;
+      document.getElementById("status").innerText = "❌ Incorrect!";
+      document.getElementById("status").className = "incorrect";
+      shakeCharacter(true);
     }
-    
-    document.getElementById("feedback").innerText = feedbackMsg;
-    document.getElementById("status").innerText = "✅ Correct!";
-    document.getElementById("status").className = "correct";
-    document.getElementById("questionCounter").innerText = `Questions Answered: ${questionsAnswered}`;
-    shakeCharacter(false);
   } else {
-    streak = 0;
-    questionsAnswered++;
-    playerHP -= 10;
-
-    document.getElementById("feedback").innerText = `❌ Wrong! The answer was ${correctAnswer}`;
-    document.getElementById("status").innerText = "❌ Incorrect!";
-    document.getElementById("status").className = "incorrect";
-    document.getElementById("questionCounter").innerText = `Questions Answered: ${questionsAnswered}`;
-    shakeCharacter(true);
+    if (currentTurn === "player") {
+      if (isCorrect) {
+        streak++;
+        const baseDamage = 10 + (streak >= 3 ? 10 : 0);
+        let damage = Math.round(baseDamage * pendingAttackMultiplier * (nextAttackDouble ? 2 : 1));
+        enemyHP -= damage;
+        pendingAttackMultiplier = 1;
+        blockCombo = 0;
+        nextAttackDouble = false;
+        document.getElementById("feedback").innerText = usedSkip
+          ? `⏭️ Skip used! Auto-attack hit for ${damage}.`
+          : `⚡ Hit! You dealt ${damage} damage.`;
+        document.getElementById("status").innerText = "✅ Attack landed";
+        document.getElementById("status").className = "correct";
+        shakeCharacter(false);
+      } else {
+        streak = 0;
+        pendingAttackMultiplier = 1;
+        blockCombo = 0;
+        document.getElementById("feedback").innerText = isTimeout
+          ? `⌛ Attack timed out! Correct answer: ${correctAnswer}`
+          : `❌ Missed attack! Correct answer: ${correctAnswer}`;
+        document.getElementById("status").innerText = "❌ Attack missed";
+        document.getElementById("status").className = "incorrect";
+      }
+    } else {
+      if (isCorrect) {
+        blockCombo += 1;
+        pendingAttackMultiplier = clampValue(1 + blockCombo * 0.25, 1, 3);
+        document.getElementById("feedback").innerText = usedSkip
+          ? "⏭️ Skip used! Enemy attack blocked."
+          : "🛡️ Perfect block! No damage taken.";
+        document.getElementById("status").innerText = `✅ Attack blocked (Combo x${pendingAttackMultiplier.toFixed(1)})`;
+        document.getElementById("status").className = "correct";
+      } else {
+        const enemyDamage = getEnemyDamage();
+        if (shieldActive) {
+          shieldActive = false;
+          document.getElementById("feedback").innerText = "🛡️ Shield absorbed enemy damage!";
+          document.getElementById("status").innerText = "✅ Shield blocked hit";
+          document.getElementById("status").className = "correct";
+        } else {
+          playerHP -= enemyDamage;
+          document.getElementById("feedback").innerText = isTimeout
+            ? `⌛ Too slow! You took ${enemyDamage}. Correct answer: ${correctAnswer}`
+            : `💥 You got hit for ${enemyDamage}! Correct answer: ${correctAnswer}`;
+          document.getElementById("status").innerText = "❌ Block failed";
+          document.getElementById("status").className = "incorrect";
+          shakeCharacter(true);
+        }
+        blockCombo = 0;
+        pendingAttackMultiplier = 1;
+      }
+    }
   }
 
   document.getElementById("answer").value = "";
   updateHealth();
+  updateMetaUI();
 
   if (playerHP <= 0) {
     document.getElementById("question").innerText = "💀 You Lost!";
     document.getElementById("playAgain").style.display = "inline-block";
     gameActive = false;
+    updateTurnIndicator();
+    rewardMatch(false);
+    showAnalytics();
     shakeCharacter(true);
     return;
   }
@@ -767,18 +1176,44 @@ function submitAnswer() {
     document.getElementById("question").innerText = "🏆 You Win!";
     document.getElementById("playAgain").style.display = "inline-block";
     gameActive = false;
+    updateTurnIndicator();
+    rewardMatch(true);
+    showAnalytics();
     shakeCharacter(false);
     triggerConfetti();
     return;
   }
 
+  if (gameMode === "speed") {
+    currentTurn = currentTurn === "player" ? "enemy" : "player";
+    updateTurnIndicator();
+  }
+
   setTimeout(() => {
-    generateQuestion();
-  }, 1500);
+    if (gameActive) generateQuestion();
+  }, 1000);
+}
+
+function submitAnswer() {
+  if (!gameActive || questionLocked) return;
+
+  const answerInput = document.getElementById("answer").value.trim();
+  if (answerInput === "") return;
+
+  let isCorrect = false;
+  if (typeof correctAnswer === "string" && correctAnswer.includes("/")) {
+    isCorrect = (answerInput === correctAnswer);
+  } else {
+    const userNum = parseFloat(answerInput);
+    const correctNum = parseFloat(correctAnswer);
+    isCorrect = !isNaN(userNum) && Math.abs(userNum - correctNum) < 0.0001;
+  }
+
+  processAnswer(isCorrect, false, activeQuestionId, answerInput, false);
 }
 
 function getHint() {
-  if (!gameActive) return;
+  if (!gameActive || questionLocked) return;
   
   const hintElement = document.getElementById("hint");
   hintUsedCount++;
@@ -826,13 +1261,26 @@ function triggerConfetti() {
 }
 
 function resetGame() {
+  clearQuestionLocks();
   playerHP = 100;
-  enemyHP = 100;
+  pickEnemyType();
+  enemyHP = enemyTypes[currentEnemyType].hp;
   streak = 0;
   hintUsedCount = 0;
   questionsAnswered = 0;
-  window.hintPenalty = false;
   gameActive = false;
+  currentTurn = "player";
+  blockCombo = 0;
+  pendingAttackMultiplier = 1;
+  shieldActive = false;
+  nextAttackDouble = false;
+  matchStats = {
+    totalAttempts: 0,
+    correctAttempts: 0,
+    totalResponseMs: 0,
+    responseCount: 0,
+    perCategory: {}
+  };
   document.getElementById("playAgain").style.display = "none";
   document.getElementById("answer").value = "";
   document.getElementById("feedback").innerText = "";
@@ -840,14 +1288,19 @@ function resetGame() {
   document.getElementById("hintUsed").innerText = "";
   document.getElementById("status").innerText = "";
   document.getElementById("status").className = "";
+  document.getElementById("analytics").style.display = "none";
   document.getElementById("questionCounter").innerText = `Questions Answered: 0`;
   document.getElementById("playerChar").classList.remove('shake');
   document.getElementById("enemyChar").classList.remove('shake');
+  document.getElementById("playerChar").innerText = characters[selectedCharacter].emoji;
   updateHealth();
+  updateTurnIndicator();
+  updateMetaUI();
 }
 
 // Initial setup
 updateHealth();
+resetGame();
 </script>
 
 </body>
