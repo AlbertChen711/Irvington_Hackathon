@@ -475,8 +475,8 @@ i<!DOCTYPE html>
     }
     .about-us-toggle {
       position: fixed;
-      right: 16px;
-      bottom: 16px;
+      left: 16px;
+      top: 16px;
       z-index: 1000;
       background: #f59e0b;
       color: #0f172a;
@@ -528,18 +528,12 @@ i<!DOCTYPE html>
       margin-bottom: 10px;
       line-height: 1.4;
     }
-    #contributionNotes {
-      width: 100%;
-      min-height: 100px;
-      border-radius: 8px;
-      border: 1px solid #475569;
-      background: #1e293b;
-      color: #f8fafc;
-      padding: 10px;
-      box-sizing: border-box;
-      resize: vertical;
-      font-family: Arial;
+    #aboutContribText {
       font-size: 14px;
+      color: #e2e8f0;
+      line-height: 1.5;
+      white-space: pre-line;
+      margin-bottom: 10px;
     }
     .about-actions {
       display: flex;
@@ -741,7 +735,7 @@ i<!DOCTYPE html>
 <div id="aboutPanel" class="about-panel">
   <h3>About Us</h3>
   <p>This section is public and read-only for visitors.</p>
-  <textarea id="contributionNotes" readonly></textarea>
+  <p id="aboutContribText"></p>
   <div class="about-actions">
     <span class="about-note">Only the project owner can change this by editing <code>PUBLIC_TEAM_CONTRIBUTIONS</code> in index.html and pushing to GitHub.</span>
   </div>
@@ -1704,9 +1698,6 @@ function playAgain() {
 function toggleAboutUs() {
   const panel = document.getElementById("aboutPanel");
   panel.classList.toggle("show");
-  if (panel.classList.contains("show")) {
-    document.getElementById("contributionNotes").focus();
-  }
 }
 
 function toggleTeamContributions() {
@@ -1716,7 +1707,7 @@ function toggleTeamContributions() {
 
 function renderPublicContributions() {
   document.getElementById("publicContribText").innerText = PUBLIC_TEAM_CONTRIBUTIONS;
-  document.getElementById("contributionNotes").value = PUBLIC_TEAM_CONTRIBUTIONS;
+  document.getElementById("aboutContribText").innerText = PUBLIC_TEAM_CONTRIBUTIONS;
   document.getElementById("teamContribText").innerText = PUBLIC_TEAM_CONTRIBUTIONS;
 }
 
