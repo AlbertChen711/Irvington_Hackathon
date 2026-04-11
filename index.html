@@ -528,6 +528,7 @@ let gameActive = false;
 let gameMode = "classic";
 let currentTurn = "player";
 let questionLocked = false;
+let waitingForNextQuestion = false;
 let activeQuestionId = 0;
 let questionStartedAt = 0;
 let timerRemaining = 0;
@@ -610,7 +611,8 @@ function setGameMode(mode) {
   updateTurnIndicator();
 
   if (gameActive) {
-    clearQuestionLocks();
+    stopTurnTimers();
+    setAnswerLockState(false);
     generateQuestion();
   }
 }
@@ -639,9 +641,7 @@ function getEnemyDamage() {
   return Math.round(base * enemyTypes[currentEnemyType].dmgMult);
 }
 
-function clearQuestionLocks() {
-  questionLocked = false;
-  document.querySelector("button.attack").disabled = false;
+function stopTurnTimers() {
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
@@ -651,6 +651,12 @@ function clearQuestionLocks() {
     pendingTimerTimeout = null;
   }
   document.getElementById("timer").innerText = "";
+}
+
+function setAnswerLockState(isLocked) {
+  questionLocked = isLocked;
+  document.querySelector("button.attack").disabled = isLocked;
+  document.getElementById("answer").disabled = isLocked;
 }
 
 function startTurnTimer(questionId) {
@@ -789,10 +795,10 @@ function setDifficulty(category, difficulty) {
 function generateQuestion() {
   let a, b;
   gameActive = true;
-  questionLocked = false;
+  waitingForNextQuestion = false;
+  setAnswerLockState(false);
   activeQuestionId += 1;
   questionStartedAt = Date.now();
-  document.querySelector("button.attack").disabled = false;
   document.getElementById("answer").value = "";
   document.getElementById("feedback").innerText = "";
 
@@ -1063,13 +1069,13 @@ function shakeCharacter(isPlayer) {
 }
 
 function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, usedSkip) {
-  if (!gameActive || questionLocked || questionIdAtAnswer !== activeQuestionId) return;
+  if (!gameActive || questionLocked || waitingForNextQuestion || questionIdAtAnswer !== activeQuestionId) return;
 
-  questionLocked = true;
-  document.querySelector("button.attack").disabled = true;
-  clearQuestionLocks();
-  questionLocked = true;
-  document.querySelector("button.attack").disabled = true;
+  setAnswerLockState(true);
+  stopTurnTimers();
+  if (isCorrect) {
+    waitingForNextQuestion = true;
+  }
 
   const responseMs = Date.now() - questionStartedAt;
   recordAttemptStats(isCorrect, responseMs);
@@ -1195,7 +1201,7 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
 }
 
 function submitAnswer() {
-  if (!gameActive || questionLocked) return;
+  if (!gameActive || questionLocked || waitingForNextQuestion) return;
 
   const answerInput = document.getElementById("answer").value.trim();
   if (answerInput === "") return;
@@ -1213,7 +1219,7 @@ function submitAnswer() {
 }
 
 function getHint() {
-  if (!gameActive || questionLocked) return;
+  if (!gameActive || questionLocked || waitingForNextQuestion) return;
   
   const hintElement = document.getElementById("hint");
   hintUsedCount++;
@@ -1261,7 +1267,9 @@ function triggerConfetti() {
 }
 
 function resetGame() {
-  clearQuestionLocks();
+  stopTurnTimers();
+  setAnswerLockState(true);
+  waitingForNextQuestion = false;
   playerHP = 100;
   pickEnemyType();
   enemyHP = enemyTypes[currentEnemyType].hp;
