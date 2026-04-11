@@ -1,80 +1,151 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from openai import OpenAI
-import traceback
+import json
 import os
+import traceback
+
 app = Flask(__name__)
 CORS(app)
 
-# Initialize OpenAI client with your API key
-client = OpenAI(api_key=os.getenv("OPEN_AI_KEY"))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+KEY_FILE = os.path.join(BASE_DIR, "OPEN_AI_KEY.txt")
 
-# Track the current question to prevent duplicate submissions
-current_question_id = None
+
+def load_api_key():
+    for env_name in ("OPEN_AI_KEY", "OPENAI_API_KEY"):
+        env_value = os.getenv(env_name)
+        if env_value:
+            return env_value.strip()
+
+    if os.path.exists(KEY_FILE):
+        with open(KEY_FILE, "r", encoding="utf-8") as key_file:
+            file_value = key_file.read().strip()
+            if file_value:
+                return file_value
+
+    return None
+
+
+api_key = load_api_key()
+client = OpenAI(api_key=api_key) if api_key else None
+
 
 @app.route("/")
 def home():
-    return send_file("index.html")
+    return send_file(os.path.abspath(os.path.join(BASE_DIR, "..", "index.html")))
 
-@app.route("/hint", methods=["POST"])\ndef hint():
-    data = request.get_json()
+
+@app.route("/hint", methods=["POST"])
+def hint():
+    data = request.get_json(silent=True) or {}
     question = data.get("question", "")
-    answer = data.get("answer", "")
     category = data.get("category", "Math Problem")
 
     try:
-        # Use OpenAI API to generate an encouraging, specific hint
-        print(f"Requesting hint for: {question} (Category: {category})")
-        
+        if client is None:
+            raise RuntimeError("OpenAI client is not configured")
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a friendly, encouraging math tutor. Give a short hint "
+                        "in 1-2 sentences without revealing the final answer."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Category: {category}\nProblem: {question}\nGive one short helpful hint.",
+                },
+            ],
+            temperature=0.7,
+            max_tokens=80,
+        )
+
+        hint_text = response.choices[0].message.content.strip()
+        return jsonify({"hint": hint_text})
+    except Exception as exc:
+        print(f"Hint API error: {exc}")
+        print(traceback.format_exc())
+        return jsonify({
+            "hint": "💡 Break the problem into smaller steps. You've got this! 🌟",
+            "fallback": True,
+        })
+
+
+@app.route("/question", methods=["POST"])
+def question():
+    data = request.get_json(silent=True) or {}
+    category = data.get("category", "addition")
+    difficulty = data.get("difficulty", "easy")
+    mode = data.get("mode", "classic")
+    turn = data.get("turn", "player")
+
+    try:
+        if client is None:
+            raise RuntimeError("OpenAI client is not configured")
+
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a friendly, encouraging math tutor. Give SHORT hints (max 2 sentences) without revealing the answer. Use emojis and be supportive!"
+                    "content": (
+                        "You create math battle questions. Return ONLY valid JSON with keys "
+                        "question, answer, and category. The question should be short and clear. "
+                        "The answer must be a number or a simple fraction string like 3/4. "
+                        "Do not include markdown or extra text."
+                    ),
                 },
                 {
                     "role": "user",
-                    "content": f"{category} problem: {question}\nGive a hint to help solve it. Be brief!"
-                }
+                    "content": (
+                        f"Create one {difficulty} {category} question for a {mode} mode turn "
+                        f"({turn}). Return JSON only."
+                    ),
+                },
             ],
-            temperature=0.7,
-            max_tokens=80
+            temperature=0.6,
+            max_tokens=180,
         )
-        
-        hint_text = response.choices[0].message.content
-        print(f"API Success: {hint_text}")
-    except Exception as e:
-        # Fallback to mock hints if API fails
-        print(f"API Error occurred: {str(e)}")
+
+        raw_text = response.choices[0].message.content.strip()
+        payload = json.loads(raw_text)
+
+        question_text = str(payload.get("question", "")).strip()
+        answer_value = payload.get("answer", "")
+        answer = str(answer_value).strip()
+        if not question_text or not answer:
+            raise ValueError("OpenAI question response missing question or answer")
+
+        return jsonify({
+            "question": question_text,
+            "answer": answer,
+            "category": category,
+            "difficulty": difficulty,
+            "mode": mode,
+            "turn": turn,
+        })
+    except Exception as exc:
+        print(f"Question API error: {exc}")
         print(traceback.format_exc())
-        hint_text = f"💡 Break the problem into smaller steps. You've got this! 🌟"
+        return jsonify({
+            "error": "OpenAI question generation failed",
+            "fallback": True,
+        }), 500
 
-    return jsonify({"hint": hint_text})
 
-@app.route("/submit_answer", methods=["POST"])\ndef submit_answer():
-    global current_question_id
-    data = request.get_json()
-    question_id = data.get("question_id")
+@app.route("/submit_answer", methods=["POST"])
+def submit_answer():
+    data = request.get_json(silent=True) or {}
     answer = data.get("answer", "")
-    
-    # Check if this is the same question being submitted again
-    if question_id == current_question_id:
-        return jsonify({"error": "Already submitted for this question. Waiting for next question..."}), 400
-    
-    # Update the current question ID
-    current_question_id = question_id
-    
-    print(f"Answer submitted for question {question_id}: {answer}")
-    
-    # Process the answer (your existing logic here)
-    return jsonify({"success": True, "message": "Answer submitted! Loading next question..."})
+    print(f"Answer submitted: {answer}")
+    return jsonify({"success": True, "message": "Answer received."})
 
-@app.route("/next_question", methods=["POST"])\ndef next_question():
-    global current_question_id
-    # Reset the question ID when a new question is loaded
-    current_question_id = None
-    return jsonify({"success": True})
 
 if __name__ == "__main__":
     app.run(port=5000, debug=False)

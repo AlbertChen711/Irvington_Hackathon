@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+i<!DOCTYPE html>
 <html>
 <head>
   <title>MathBattle.com - Math Battle Arena</title>
@@ -232,14 +232,63 @@
       border-radius: 10px;
     }
     .character {
-      text-align: center;
-      font-size: 100px;
-      line-height: 1;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-      font-weight: bold;
+      width: 140px;
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0;
+      line-height: 0;
+    }
+    .character img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
     }
     .character.shake {
       animation: shake 0.5s;
+    }
+    .character.anim-attack-player {
+      animation: attackPlayer 0.55s ease;
+    }
+    .character.anim-attack-enemy {
+      animation: attackEnemy 0.55s ease;
+    }
+    .character.anim-hurt {
+      animation: hurtHit 0.5s ease;
+    }
+    .character.anim-win {
+      animation: winBounce 0.8s ease;
+    }
+    .character.anim-lose {
+      animation: loseDrop 0.8s ease;
+    }
+    @keyframes attackPlayer {
+      0% { transform: translateX(0) scale(1); }
+      50% { transform: translateX(22px) scale(1.08); }
+      100% { transform: translateX(0) scale(1); }
+    }
+    @keyframes attackEnemy {
+      0% { transform: translateX(0) scale(1); }
+      50% { transform: translateX(-22px) scale(1.08); }
+      100% { transform: translateX(0) scale(1); }
+    }
+    @keyframes hurtHit {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      35% { transform: scale(0.9); filter: brightness(1.8); }
+      65% { transform: scale(1.06); filter: brightness(0.8); }
+    }
+    @keyframes winBounce {
+      0% { transform: translateY(0) scale(1); }
+      30% { transform: translateY(-22px) scale(1.08); }
+      60% { transform: translateY(0) scale(1); }
+      80% { transform: translateY(-10px) scale(1.04); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    @keyframes loseDrop {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(18px) rotate(8deg); opacity: 0.65; }
     }
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
@@ -369,6 +418,174 @@
       margin-bottom: 6px;
       font-size: 15px;
     }
+    .win-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 6, 23, 0.68);
+      pointer-events: none;
+    }
+    .win-overlay.show {
+      display: flex;
+    }
+    .win-card {
+      text-align: center;
+      animation: winPop 900ms ease-out;
+    }
+    .win-card img {
+      width: min(460px, 84vw);
+      border-radius: 12px;
+      border: 3px solid #fbbf24;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+    }
+    .win-card p {
+      margin-top: 10px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #fcd34d;
+      text-shadow: 0 0 18px rgba(252, 211, 77, 0.7);
+    }
+    @keyframes winPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      60% { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #publicContribSection {
+      margin: 10px auto 14px auto;
+      max-width: 780px;
+      background: #132238;
+      border: 1px solid #355274;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: left;
+    }
+    #publicContribSection h3 {
+      margin-bottom: 8px;
+      color: #fde68a;
+      font-size: 18px;
+    }
+    #publicContribText {
+      font-size: 14px;
+      color: #e2e8f0;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+    .about-us-toggle {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 1000;
+      background: #f59e0b;
+      color: #0f172a;
+      font-weight: bold;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+    }
+    .team-contrib-toggle {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      z-index: 1000;
+      background: #22c55e;
+      color: #0f172a;
+      font-weight: bold;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35);
+    }
+    .about-panel {
+      position: fixed;
+      right: 16px;
+      bottom: 68px;
+      width: min(380px, calc(100vw - 32px));
+      background: #0b1220;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 14px;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 14px 36px rgba(2, 6, 23, 0.6);
+    }
+    .about-panel.show {
+      display: block;
+    }
+    .about-panel h3 {
+      margin-bottom: 8px;
+      color: #fcd34d;
+      font-size: 18px;
+    }
+    .about-panel p {
+      font-size: 14px;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    #contributionNotes {
+      width: 100%;
+      min-height: 100px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 10px;
+      box-sizing: border-box;
+      resize: vertical;
+      font-family: Arial;
+      font-size: 14px;
+    }
+    .about-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      gap: 8px;
+    }
+    .about-note {
+      font-size: 12px;
+      color: #93c5fd;
+      line-height: 1.4;
+    }
+    .contrib-panel {
+      position: fixed;
+      left: 16px;
+      bottom: 68px;
+      width: min(380px, calc(100vw - 32px));
+      background: #0b1220;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 14px;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 14px 36px rgba(2, 6, 23, 0.6);
+    }
+    .contrib-panel.show {
+      display: block;
+    }
+    .contrib-panel h3 {
+      margin-bottom: 8px;
+      color: #86efac;
+      font-size: 18px;
+    }
+    .contrib-panel p {
+      font-size: 14px;
+      color: #e2e8f0;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+    #aiStatus {
+      font-size: 13px;
+      color: #93c5fd;
+      margin-top: 8px;
+      min-height: 18px;
+    }
   </style>
 </head>
 
@@ -470,12 +687,17 @@
     <button id="useDoubleBtn" class="power-btn" onclick="usePowerup('double')">Double Damage (0)</button>
     <button id="useSkipBtn" class="power-btn" onclick="usePowerup('skip')">Skip Solve (0)</button>
   </div>
+  <div id="publicContribSection">
+    <h3>Team Contributions</h3>
+    <p id="publicContribText"></p>
+  </div>
+  <div id="aiStatus">AI hints/questions: checking backend...</div>
   <div id="turnIndicator"></div>
   <div id="timer"></div>
   <div id="status"></div>
 
   <div class="play-again-container">
-    <button id="playAgain" onclick="resetGame()">🔄 Play Again</button>
+    <button id="playAgain" onclick="playAgain()">🔄 Play Again</button>
   </div>
 
   <div class="box">
@@ -499,7 +721,7 @@
       <div class="health-container">
         <div class="health-label">🧍 You</div>
         <div class="bar"><div id="playerHealth" class="health" style="width: 100%"></div></div>
-        <div class="character" id="playerChar">🧙‍♂️</div>
+        <div class="character" id="playerChar"><img id="playerCharImg" alt="Player"></div>
       </div>
       <div style="text-align: center;">
         <p style="font-size: 24px; margin-top: 50px;">⚡</p>
@@ -507,10 +729,27 @@
       <div class="health-container">
         <div class="health-label">🤖 Enemy</div>
         <div class="bar"><div id="enemyHealth" class="health" style="width: 100%"></div></div>
-        <div class="character" id="enemyChar">👹</div>
+        <div class="character" id="enemyChar"><img id="enemyCharImg" alt="Enemy"></div>
       </div>
     </div>
   </div>
+</div>
+
+<button class="about-us-toggle" onclick="toggleAboutUs()">About Us</button>
+<button class="team-contrib-toggle" onclick="toggleTeamContributions()">Team Contributions</button>
+
+<div id="aboutPanel" class="about-panel">
+  <h3>About Us</h3>
+  <p>This section is public and read-only for visitors.</p>
+  <textarea id="contributionNotes" readonly></textarea>
+  <div class="about-actions">
+    <span class="about-note">Only the project owner can change this by editing <code>PUBLIC_TEAM_CONTRIBUTIONS</code> in index.html and pushing to GitHub.</span>
+  </div>
+</div>
+
+<div id="teamContribPanel" class="contrib-panel">
+  <h3>Team Contributions</h3>
+  <p id="teamContribText"></p>
 </div>
 
 <script>
@@ -562,6 +801,25 @@ const enemyTypes = {
 };
 let currentEnemyType = "standard";
 
+const PUBLIC_TEAM_CONTRIBUTIONS = [
+  "Team Contributions:",
+  "- Built a turn-based math battle game with classic and speed modes.",
+  "- Added enemy behaviors, combo multipliers, rewards, and power-ups.",
+  "- Implemented analytics for accuracy, response time, and weakest topic.",
+  "- Designed responsive UI and quality-of-life gameplay fixes."
+].join("\n");
+
+const SHARED_ANIMATION_URL = "https://ci3.googleusercontent.com/mail-img-att/AGAZnRpHkxDm4E2pvkteTijUcgaY6Z3rqg1yAS5X7PWoVOjzlKoEvZTz9a9fXQZ4B_J37DrGRJXat6FHk8_SsgFfN93oWscINx2ygKsJErgiUZh_Ls9CC3Tx7RwyUyd2oRZAEvf6RVfMne5zes5BVAjFe-ka-Y9l564KtrhPrYr60l3o_xEotfPQkTQtiu5YVYicd2pYfS3iP81JKHa8eRVUPjcpVCA2Qq42F-wacK8QzpqIbjmqrTMJE7ea9FeHf6o57QR_Q9DPaF72tLW-fUM6CdXqqavDrvZiOi5omxVWE0lMAKP0QA495wX1IU6PuGOxLGDNlPTzrkcIoRRZQeD8u3qyW3PjjRedS-4BC0WJagNMd9wr2jxlbLb1r7niCIsFNysV8ApjcYj_gKYUgxKqorFMkh-KsP8Zbo08T1UAZAF_P8F8JnK01yf-xg8ndEbW10TzKnJlTh8wdfZmV4UBVm-eKBT8DKVYT5_Ar_EnRGobgFEt46yjM0LeGUnmdcLGaZPtn5eKGs5gXH23pPOP_sB31sQaMRrjGbMop7sZNTD_AX2qt3G-LGKQ9OAzJWGvGzVq_Ln7TDD2x38c9075zu3QvpbSO75gGp5pE7qMiOEbXZA5AG6gUmtrhF55X80q8aopCnQ_ipgdBkoAUa8p3aH9rlxj8mouGiWxXKF3ysGfnjZoWiIhdrlk2ikVGD-IgsXGly8YATEtYWxE9Vyi5YnZXgaVMxNagcZ5TTvCX-8fO5zJLdykiU4VTgqF7OR4n9ZNhIBn0Ds4oEoc3sL203E6SBt3abtWQFqitx846tDzK3O0RijuOPYIhsNGbl9FPaUmVMbAsEt57iFREePhqePPCg9U1OVm3ucrb6yGGvigTVlhkrm_EaQduK__BnSNOk4ThQMqKV_kG04g0Fl37LHNZYliMD_ds6ecaeBl418GIjs-Xi-X9h_IqjyqoDsYqD5Hqbve_HKuNMpxJ2hf8JI_bH9nfEpg-8mSFcL73yRAjRNUPrRxQ4eLpbON_hG6XJtv4qo7JdWdF8heOKDG-ZA9SYwURDNZzObhBDVRhb6ZT-Zf=s0-l75-ft";
+const WIN_ANIMATION_URL = SHARED_ANIMATION_URL;
+const ATTACK_ANIMATION_URL = SHARED_ANIMATION_URL;
+const HURT_ANIMATION_URL = SHARED_ANIMATION_URL;
+const LOSE_ANIMATION_URL = SHARED_ANIMATION_URL;
+const IDLE_ANIMATION_URL = SHARED_ANIMATION_URL;
+const FALLBACK_WIN_ANIMATION_URL = "https://dummyimage.com/420x220/e5e7eb/111827.png&text=winning";
+const FALLBACK_ATTACK_ANIMATION_URL = "https://dummyimage.com/420x220/dbeafe/1e3a8a.png&text=attack";
+const FALLBACK_HURT_ANIMATION_URL = "https://dummyimage.com/420x220/fee2e2/7f1d1d.png&text=hurt";
+const FALLBACK_LOSE_ANIMATION_URL = "https://dummyimage.com/420x220/111827/f8fafc.png&text=lose";
+
 let matchStats = {
   totalAttempts: 0,
   correctAttempts: 0,
@@ -596,6 +854,57 @@ function updateMetaUI() {
   document.getElementById("useShieldBtn").disabled = powerups.shield <= 0 || !gameActive;
   document.getElementById("useDoubleBtn").disabled = powerups.double <= 0 || !gameActive;
   document.getElementById("useSkipBtn").disabled = powerups.skip <= 0 || !gameActive;
+}
+
+async function requestAiQuestion() {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+    const response = await fetch("http://127.0.0.1:5000/question", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: currentCategory,
+        difficulty: currentDifficulty,
+        mode: gameMode,
+        turn: currentTurn,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (!data || !data.question || data.answer === undefined) return null;
+
+    return data;
+  } catch (error) {
+    return null;
+  }
+}
+
+function renderQuestionFooter() {
+  document.getElementById("hint").innerText = "";
+  document.getElementById("hintUsed").innerText = "";
+  document.getElementById("status").innerText = "";
+  document.getElementById("status").className = "";
+
+  if (gameMode === "speed") {
+    const prefix = currentTurn === "player"
+      ? "🗡️ Your turn: Solve to attack!\n"
+      : "🛡️ Enemy turn: Solve to block!\n";
+    document.getElementById("question").innerText = prefix + document.getElementById("question").innerText;
+    startTurnTimer(activeQuestionId);
+  }
+
+  updateTurnIndicator();
+  updateMetaUI();
+  hintUsedCount = 0;
+  setAnswerLockState(false);
+  focusAnswerInput();
 }
 
 function pickEnemyType() {
@@ -657,6 +966,14 @@ function setAnswerLockState(isLocked) {
   questionLocked = isLocked;
   document.querySelector("button.attack").disabled = isLocked;
   document.getElementById("answer").disabled = isLocked;
+}
+
+function focusAnswerInput() {
+  const answerEl = document.getElementById("answer");
+  if (answerEl.disabled) return;
+  requestAnimationFrame(() => {
+    answerEl.focus();
+  });
 }
 
 function startTurnTimer(questionId) {
@@ -735,7 +1052,7 @@ function buyCharacter(charKey) {
   coins -= entry.cost;
   entry.unlocked = true;
   selectedCharacter = charKey;
-  document.getElementById("playerChar").innerText = entry.emoji;
+  setCharacterIdleImages();
   document.getElementById("feedback").innerText = `✨ Unlocked ${entry.label}!`;
   updateMetaUI();
 }
@@ -792,15 +1109,24 @@ function setDifficulty(category, difficulty) {
   generateQuestion();
 }
 
-function generateQuestion() {
+async function generateQuestion() {
   let a, b;
   gameActive = true;
   waitingForNextQuestion = false;
-  setAnswerLockState(false);
+  setAnswerLockState(true);
   activeQuestionId += 1;
   questionStartedAt = Date.now();
   document.getElementById("answer").value = "";
   document.getElementById("feedback").innerText = "";
+
+  const aiQuestion = await requestAiQuestion();
+  if (aiQuestion) {
+    currentQuestion = aiQuestion.question;
+    correctAnswer = aiQuestion.answer;
+    document.getElementById("question").innerText = aiQuestion.question;
+    renderQuestionFooter();
+    return;
+  }
 
   const effectiveDifficulty = getEffectiveDifficulty();
 
@@ -1024,20 +1350,7 @@ function generateQuestion() {
     }
   }
 
-  document.getElementById("hint").innerText = "";
-  document.getElementById("hintUsed").innerText = "";
-  document.getElementById("status").innerText = "";
-  document.getElementById("status").className = "";
-  if (gameMode === "speed") {
-    const prefix = currentTurn === "player"
-      ? "🗡️ Your turn: Solve to attack!\n"
-      : "🛡️ Enemy turn: Solve to block!\n";
-    document.getElementById("question").innerText = prefix + document.getElementById("question").innerText;
-    startTurnTimer(activeQuestionId);
-  }
-  updateTurnIndicator();
-  updateMetaUI();
-  hintUsedCount = 0;
+  renderQuestionFooter();
 }
 
 function updateHealth() {
@@ -1068,6 +1381,34 @@ function shakeCharacter(isPlayer) {
   character.classList.add('shake');
 }
 
+function setCharacterImage(characterElement, imageUrl, fallbackUrl) {
+  const sprite = characterElement.querySelector("img");
+  if (!sprite) return;
+
+  sprite.onerror = () => {
+    if (sprite.dataset.usedFallback === "1") return;
+    sprite.dataset.usedFallback = "1";
+    sprite.src = fallbackUrl;
+  };
+
+  sprite.dataset.usedFallback = "0";
+  sprite.src = imageUrl;
+}
+
+function setCharacterIdleImages() {
+  setCharacterImage(document.getElementById("playerChar"), IDLE_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
+  setCharacterImage(document.getElementById("enemyChar"), IDLE_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
+}
+
+function clearCharacterActionClasses() {
+  const playerChar = document.getElementById("playerChar");
+  const enemyChar = document.getElementById("enemyChar");
+  ["anim-attack-player", "anim-attack-enemy", "anim-hurt", "anim-win", "anim-lose", "shake"].forEach((cls) => {
+    playerChar.classList.remove(cls);
+    enemyChar.classList.remove(cls);
+  });
+}
+
 function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, usedSkip) {
   if (!gameActive || questionLocked || waitingForNextQuestion || questionIdAtAnswer !== activeQuestionId) return;
 
@@ -1088,6 +1429,9 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
       streak++;
       let damage = 10 + (streak >= 3 ? 10 : 0);
       enemyHP -= damage;
+      if (enemyHP > 0) {
+        playActionAnimation("attack");
+      }
       let feedbackMsg = `🔥 Correct! You dealt ${damage} damage!`;
       if (hintUsedCount > 0) {
         feedbackMsg = `🎉 YIPEEE! YOU GOT IT! Amazing job using that hint! 🌟 You dealt ${damage} damage! Keep crushing it! 💯`;
@@ -1099,6 +1443,9 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
     } else {
       streak = 0;
       playerHP -= 10;
+      if (playerHP > 0) {
+        playActionAnimation("hurt");
+      }
       document.getElementById("feedback").innerText = isTimeout
         ? `⌛ Time's up! The answer was ${correctAnswer}`
         : `❌ Wrong! The answer was ${correctAnswer}`;
@@ -1113,6 +1460,9 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
         const baseDamage = 10 + (streak >= 3 ? 10 : 0);
         let damage = Math.round(baseDamage * pendingAttackMultiplier * (nextAttackDouble ? 2 : 1));
         enemyHP -= damage;
+        if (enemyHP > 0) {
+          playActionAnimation("attack");
+        }
         pendingAttackMultiplier = 1;
         blockCombo = 0;
         nextAttackDouble = false;
@@ -1150,6 +1500,9 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
           document.getElementById("status").className = "correct";
         } else {
           playerHP -= enemyDamage;
+          if (playerHP > 0) {
+            playActionAnimation("hurt");
+          }
           document.getElementById("feedback").innerText = isTimeout
             ? `⌛ Too slow! You took ${enemyDamage}. Correct answer: ${correctAnswer}`
             : `💥 You got hit for ${enemyDamage}! Correct answer: ${correctAnswer}`;
@@ -1170,6 +1523,7 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
   if (playerHP <= 0) {
     document.getElementById("question").innerText = "💀 You Lost!";
     document.getElementById("playAgain").style.display = "inline-block";
+    playActionAnimation("lose");
     gameActive = false;
     updateTurnIndicator();
     rewardMatch(false);
@@ -1181,12 +1535,12 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
   if (enemyHP <= 0) {
     document.getElementById("question").innerText = "🏆 You Win!";
     document.getElementById("playAgain").style.display = "inline-block";
+    playActionAnimation("win");
     gameActive = false;
     updateTurnIndicator();
     rewardMatch(true);
     showAnalytics();
     shakeCharacter(false);
-    triggerConfetti();
     return;
   }
 
@@ -1218,7 +1572,7 @@ function submitAnswer() {
   processAnswer(isCorrect, false, activeQuestionId, answerInput, false);
 }
 
-function getHint() {
+async function getHint() {
   if (!gameActive || questionLocked || waitingForNextQuestion) return;
   
   const hintElement = document.getElementById("hint");
@@ -1241,29 +1595,65 @@ function getHint() {
     localHint = "💡 Tip: Double-check your mental math, you've got this! ✨";
   }
 
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+    const response = await fetch("http://127.0.0.1:5000/hint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: currentQuestion,
+        answer: correctAnswer,
+        category: currentCategory,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.hint) {
+        localHint = data.hint;
+      }
+    }
+  } catch (error) {
+    // Fall back to the local hint text below.
+  }
+
   // Display the hint instantly!
   hintElement.innerText = localHint;
   document.getElementById("hintUsed").innerText = "⚠️ Hint used! You got a helpful tip!";
 }
-function triggerConfetti() {
-  confetti({
-    particleCount: 100,
-    spread: 70,
-    origin: { y: 0.6 }
-  });
-  
+function playActionAnimation(actionType) {
+  const playerChar = document.getElementById("playerChar");
+  const enemyChar = document.getElementById("enemyChar");
+
+  clearCharacterActionClasses();
+
+  if (actionType === "attack") {
+    setCharacterImage(playerChar, ATTACK_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
+    setCharacterImage(enemyChar, HURT_ANIMATION_URL, FALLBACK_HURT_ANIMATION_URL);
+    playerChar.classList.add("anim-attack-player");
+    enemyChar.classList.add("anim-hurt");
+  } else if (actionType === "hurt") {
+    setCharacterImage(enemyChar, ATTACK_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
+    setCharacterImage(playerChar, HURT_ANIMATION_URL, FALLBACK_HURT_ANIMATION_URL);
+    enemyChar.classList.add("anim-attack-enemy");
+    playerChar.classList.add("anim-hurt");
+  } else if (actionType === "lose") {
+    setCharacterImage(playerChar, LOSE_ANIMATION_URL, FALLBACK_LOSE_ANIMATION_URL);
+    playerChar.classList.add("anim-lose");
+  } else {
+    setCharacterImage(playerChar, WIN_ANIMATION_URL, FALLBACK_WIN_ANIMATION_URL);
+    playerChar.classList.add("anim-win");
+  }
+
   setTimeout(() => {
-    confetti({
-      particleCount: 50,
-      spread: 45,
-      origin: { x: 0.2, y: 0.2 }
-    });
-    confetti({
-      particleCount: 50,
-      spread: 45,
-      origin: { x: 0.8, y: 0.2 }
-    });
-  }, 200);
+    clearCharacterActionClasses();
+    setCharacterIdleImages();
+  }, 850);
 }
 
 function resetGame() {
@@ -1300,15 +1690,41 @@ function resetGame() {
   document.getElementById("questionCounter").innerText = `Questions Answered: 0`;
   document.getElementById("playerChar").classList.remove('shake');
   document.getElementById("enemyChar").classList.remove('shake');
-  document.getElementById("playerChar").innerText = characters[selectedCharacter].emoji;
+  setCharacterIdleImages();
   updateHealth();
   updateTurnIndicator();
   updateMetaUI();
 }
 
+function playAgain() {
+  resetGame();
+  generateQuestion();
+}
+
+function toggleAboutUs() {
+  const panel = document.getElementById("aboutPanel");
+  panel.classList.toggle("show");
+  if (panel.classList.contains("show")) {
+    document.getElementById("contributionNotes").focus();
+  }
+}
+
+function toggleTeamContributions() {
+  const panel = document.getElementById("teamContribPanel");
+  panel.classList.toggle("show");
+}
+
+function renderPublicContributions() {
+  document.getElementById("publicContribText").innerText = PUBLIC_TEAM_CONTRIBUTIONS;
+  document.getElementById("contributionNotes").value = PUBLIC_TEAM_CONTRIBUTIONS;
+  document.getElementById("teamContribText").innerText = PUBLIC_TEAM_CONTRIBUTIONS;
+}
+
 // Initial setup
 updateHealth();
 resetGame();
+renderPublicContributions();
+document.getElementById("aiStatus").innerText = "AI hints/questions: use the backend if it is running, otherwise fallback is active.";
 </script>
 
 </body>
