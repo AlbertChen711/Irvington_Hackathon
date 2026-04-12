@@ -692,14 +692,14 @@ i<!DOCTYPE html>
 
     <div class="characters">
       <div class="health-container">
-        <div class="health-label">You (Wizard)</div>
+        <div class="health-label">You</div>
         <div class="bar"><div id="playerHealth" class="health" style="width: 100%"></div></div>
       </div>
       <div class="battle-scene" id="battleScene">
         <img id="battleSceneImg" alt="Battle Animation">
       </div>
       <div class="health-container">
-        <div class="health-label">Enemy (Lizard)</div>
+        <div class="health-label">Enemy</div>
         <div class="bar"><div id="enemyHealth" class="health" style="width: 100%"></div></div>
       </div>
     </div>
@@ -711,11 +711,9 @@ i<!DOCTYPE html>
 
 <div id="aboutPanel" class="about-panel">
   <h3>About Us</h3>
-  <p>This section is public and read-only for visitors.</p>
-  <p id="aboutContribText"></p>
-  <div class="about-actions">
-    <span class="about-note">Only the project owner can change this by editing <code>PUBLIC_TEAM_CONTRIBUTIONS</code> in index.html and pushing to GitHub.</span>
-  </div>
+  <p><b>About us:</b><br>We are a group of middle schoolers who are concerned about the average IQ of the US.<br><b>About this app:</b><br>You would expect the United States—one of the world’s leading superpowers—to excel in mathematics. Yet as we enter an era driven by artificial intelligence, strong math skills are more critical than ever, forming the foundation for modeling, training, and optimizing intelligent systems. Unfortunately, math proficiency among American students has been declining, leaving parents and educators searching for effective solutions. The problem? Most existing learning platforms are dull, and many so-called “educational games” fail to truly engage. There is a clear need for a solution that makes learning math both effective and genuinely exciting.
+This is where our project comes in. We’ve built a simple yet powerful platform that doesn’t just teach math—it makes it engaging. Instead of feeling like another boring educational website, our experience transforms learning into play. By incorporating video game–style mechanics and immersive gameplay, students don’t feel like they’re studying—they feel like they’re playing.
+</p>
 </div>
 
 <div id="teamContribPanel" class="contrib-panel">
@@ -925,9 +923,9 @@ function updateTurnIndicator() {
 
 function getEnemyDamage() {
   let base;
-  if (currentDifficulty === "easy") base = 8;
-  else if (currentDifficulty === "medium") base = 12;
-  else base = 16;
+  if (currentDifficulty === "easy") base = 10;
+  else if (currentDifficulty === "medium") base = 14;
+  else base = 18;
   return Math.round(base * enemyTypes[currentEnemyType].dmgMult);
 }
 
