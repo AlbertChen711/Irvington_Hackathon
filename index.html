@@ -658,9 +658,6 @@ i<!DOCTYPE html>
     <button id="speedModeBtn" class="mode-btn" onclick="setGameMode('speed')">Speed Mode (Turn-Based)</button>
   </div>
   <div class="powerups">
-    <button id="buyKnightBtn" class="power-btn" onclick="buyCharacter('knight')">Buy Knight (60)</button>
-    <button id="buyNinjaBtn" class="power-btn" onclick="buyCharacter('ninja')">Buy Ninja (90)</button>
-    <button id="useShieldBtn" class="power-btn" onclick="usePowerup('shield')">Shield (0)</button>
     <button id="useDoubleBtn" class="power-btn" onclick="usePowerup('double')">Double Damage (0)</button>
     <button id="useSkipBtn" class="power-btn" onclick="usePowerup('skip')">Skip Solve (0)</button>
   </div>
@@ -749,15 +746,11 @@ let shieldActive = false;
 let nextAttackDouble = false;
 
 let coins = 0;
-const characters = {
-  wizard: { emoji: "🧙‍♂️", label: "Wizard", cost: 0, unlocked: true },
-  knight: { emoji: "🛡️", label: "Knight", cost: 60, unlocked: false },
-  ninja: { emoji: "🥷", label: "Ninja", cost: 90, unlocked: false }
-};
-let selectedCharacter = "wizard";
+
+const selectedCharacter = "wizard";
+const selectedCharacterLabel = "Wizard";
 
 let powerups = {
-  shield: 0,
   double: 0,
   skip: 0
 };
@@ -822,15 +815,11 @@ function updateMetaUI() {
   const enemyLabel = enemyTypes[currentEnemyType].label;
   document.getElementById("enemyTypeDisplay").innerText = `Enemy: ${enemyLabel}`;
   document.getElementById("coinsDisplay").innerText = `Coins: ${coins}`;
-  document.getElementById("characterDisplay").innerText = `Character: ${characters[selectedCharacter].label}`;
+  document.getElementById("characterDisplay").innerText = `Character: ${selectedCharacterLabel}`;
   document.getElementById("comboDisplay").innerText = `Block Combo: x${pendingAttackMultiplier.toFixed(1)}`;
-  document.getElementById("useShieldBtn").innerText = `Shield (${powerups.shield})`;
   document.getElementById("useDoubleBtn").innerText = `Double Damage (${powerups.double})`;
   document.getElementById("useSkipBtn").innerText = `Skip Solve (${powerups.skip})`;
 
-  document.getElementById("buyKnightBtn").disabled = characters.knight.unlocked;
-  document.getElementById("buyNinjaBtn").disabled = characters.ninja.unlocked;
-  document.getElementById("useShieldBtn").disabled = powerups.shield <= 0 || !gameActive;
   document.getElementById("useDoubleBtn").disabled = powerups.double <= 0 || !gameActive;
   document.getElementById("useSkipBtn").disabled = powerups.skip <= 0 || !gameActive;
 }
@@ -1018,32 +1007,16 @@ function rewardMatch(isWin) {
   coins += baseCoins + performanceBonus;
 
   if (isWin) {
-    powerups.shield += 1;
     powerups.double += 1;
     powerups.skip += 1;
   }
   updateMetaUI();
 }
 
-function buyCharacter(charKey) {
-  const entry = characters[charKey];
-  if (!entry || entry.unlocked || coins < entry.cost) return;
-  coins -= entry.cost;
-  entry.unlocked = true;
-  selectedCharacter = charKey;
-  setBattleIdleScene();
-  document.getElementById("feedback").innerText = `✨ Unlocked ${entry.label}!`;
-  updateMetaUI();
-}
-
 function usePowerup(kind) {
   if (!gameActive || powerups[kind] <= 0) return;
 
-  if (kind === "shield") {
-    shieldActive = true;
-    powerups.shield -= 1;
-    document.getElementById("feedback").innerText = "🛡️ Shield activated for the next enemy hit.";
-  } else if (kind === "double") {
+  if (kind === "double") {
     nextAttackDouble = true;
     powerups.double -= 1;
     document.getElementById("feedback").innerText = "⚔️ Double damage ready for your next successful attack.";
