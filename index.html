@@ -233,21 +233,25 @@ i<!DOCTYPE html>
       gap: 24px;
     }
     .battle-scene {
-      width: min(560px, 58vw);
-      height: min(320px, 38vh);
-      display: flex;
+      width: fit-content;
+      height: fit-content;
+      max-width: min(560px, 58vw);
+      max-height: min(320px, 38vh);
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      border-radius: 10px;
-      border: 2px solid #475569;
-      background: #0b1220;
-      box-shadow: 0 12px 26px rgba(2, 6, 23, 0.55);
+      overflow: visible;
+      border-radius: 0;
+      border: none;
+      background: transparent;
+      box-shadow: none;
     }
     .battle-scene img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
+      width: auto;
+      height: auto;
+      max-width: min(560px, 58vw);
+      max-height: min(320px, 38vh);
+      object-fit: fill;
       display: block;
     }
     .battle-scene.shake {
@@ -776,12 +780,12 @@ const PUBLIC_TEAM_CONTRIBUTIONS = [
   "- Designed responsive UI and quality-of-life gameplay fixes."
 ].join("\n");
 
-const IDLE_ANIMATION_URL = "./Irvington_Hackathon/assets/idle.gif";
-const WIN_ANIMATION_URL = "./Irvington_Hackathon/assets/Winning.gif";
-const ATTACK_ANIMATION_URL = "./Irvington_Hackathon/assets/Attacking.gif";
-const HURT_ANIMATION_URL = "./Irvington_Hackathon/assets/Hurt.gif";
-const BLOCK_ANIMATION_URL = "./Irvington_Hackathon/assets/Blocking.gif";
-const LOSE_ANIMATION_URL = "./Irvington_Hackathon/assets/Losing.gif";
+const IDLE_ANIMATION_URL = "./Irvington_Hackathon/assets/Idle.gif";
+const WIN_ANIMATION_URL = "./Irvington_Hackathon/assets/Win.gif";
+const ATTACK_ANIMATION_URL = "./Irvington_Hackathon/assets/atk.gif";
+const HURT_ANIMATION_URL = "./Irvington_Hackathon/assets/hrt.gif";
+const BLOCK_ANIMATION_URL = "./Irvington_Hackathon/assets/block.gif";
+const LOSE_ANIMATION_URL = "./Irvington_Hackathon/assets/lose.gif";
 const FALLBACK_WIN_ANIMATION_URL = "https://dummyimage.com/420x220/e5e7eb/111827.png&text=winning";
 const FALLBACK_IDLE_ANIMATION_URL = "https://dummyimage.com/420x220/e5e7eb/111827.png&text=idle";
 const FALLBACK_ATTACK_ANIMATION_URL = "https://dummyimage.com/420x220/dbeafe/1e3a8a.png&text=attack";
@@ -789,12 +793,13 @@ const FALLBACK_HURT_ANIMATION_URL = "https://dummyimage.com/420x220/fee2e2/7f1d1
 const FALLBACK_BLOCK_ANIMATION_URL = "https://dummyimage.com/420x220/d1fae5/065f46.png&text=block";
 const FALLBACK_LOSE_ANIMATION_URL = "https://dummyimage.com/420x220/111827/f8fafc.png&text=lose";
 const ACTION_ANIMATION_DURATION_MS = {
-  attack: 3000,
-  hurt: 3000,
-  block: 3000,
-  win: 3400,
-  lose: 3400
+  attack: 2100,
+  hurt: 2100,
+  block: 2100,
+  win: 2300,
+  lose: 2300
 };
+let actionAnimationResetTimeout = null;
 
 let matchStats = {
   totalAttempts: 0,
@@ -1604,6 +1609,10 @@ async function getHint() {
 }
 function playActionAnimation(actionType) {
   const battleScene = document.getElementById("battleScene");
+  if (actionAnimationResetTimeout) {
+    clearTimeout(actionAnimationResetTimeout);
+    actionAnimationResetTimeout = null;
+  }
   clearBattleActionClasses();
 
   if (actionType === "attack") {
@@ -1623,9 +1632,10 @@ function playActionAnimation(actionType) {
     battleScene.classList.add("anim-win");
   }
 
-  setTimeout(() => {
+  actionAnimationResetTimeout = setTimeout(() => {
     clearBattleActionClasses();
     setBattleIdleScene();
+    actionAnimationResetTimeout = null;
   }, ACTION_ANIMATION_DURATION_MS[actionType] || 3000);
 }
 
