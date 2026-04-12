@@ -922,9 +922,9 @@ function updateTurnIndicator() {
 
 function getEnemyDamage() {
   let base;
-  if (currentDifficulty === "easy") base = 8;
-  else if (currentDifficulty === "medium") base = 12;
-  else base = 16;
+  if (currentDifficulty === "easy") base = 10;
+  else if (currentDifficulty === "medium") base = 14;
+  else base = 18;
   return Math.round(base * enemyTypes[currentEnemyType].dmgMult);
 }
 
