@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, abort
 from flask_cors import CORS
 from openai import OpenAI
 import json
@@ -38,6 +38,16 @@ client = OpenAI(api_key=api_key) if api_key else None
 @app.route("/")
 def home():
     return send_file(os.path.join(BASE_DIR, "index.html"))
+
+
+@app.route("/<path:requested_path>")
+def static_files(requested_path):
+    absolute_path = os.path.abspath(os.path.join(BASE_DIR, requested_path))
+    if not absolute_path.startswith(BASE_DIR):
+        abort(404)
+    if not os.path.isfile(absolute_path):
+        abort(404)
+    return send_file(absolute_path)
 
 
 @app.route("/ai_status", methods=["GET"])

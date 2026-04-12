@@ -776,19 +776,25 @@ const PUBLIC_TEAM_CONTRIBUTIONS = [
   "- Designed responsive UI and quality-of-life gameplay fixes."
 ].join("\n");
 
-const EVENT_ANIMATION_URL = "./Irvington_Hackathon/assets/ANIM_0322%20(5).gif";
-const IDLE_ANIMATION_URL = "./Irvington_Hackathon/assets/ANIM_0324.gif";
-const WIN_ANIMATION_URL = EVENT_ANIMATION_URL;
-const ATTACK_ANIMATION_URL = EVENT_ANIMATION_URL;
-const HURT_ANIMATION_URL = EVENT_ANIMATION_URL;
-const BLOCK_ANIMATION_URL = EVENT_ANIMATION_URL;
-const LOSE_ANIMATION_URL = EVENT_ANIMATION_URL;
+const IDLE_ANIMATION_URL = "./Irvington_Hackathon/assets/idle.gif";
+const WIN_ANIMATION_URL = "./Irvington_Hackathon/assets/Winning.gif";
+const ATTACK_ANIMATION_URL = "./Irvington_Hackathon/assets/Attacking.gif";
+const HURT_ANIMATION_URL = "./Irvington_Hackathon/assets/Hurt.gif";
+const BLOCK_ANIMATION_URL = "./Irvington_Hackathon/assets/Blocking.gif";
+const LOSE_ANIMATION_URL = "./Irvington_Hackathon/assets/Losing.gif";
 const FALLBACK_WIN_ANIMATION_URL = "https://dummyimage.com/420x220/e5e7eb/111827.png&text=winning";
+const FALLBACK_IDLE_ANIMATION_URL = "https://dummyimage.com/420x220/e5e7eb/111827.png&text=idle";
 const FALLBACK_ATTACK_ANIMATION_URL = "https://dummyimage.com/420x220/dbeafe/1e3a8a.png&text=attack";
 const FALLBACK_HURT_ANIMATION_URL = "https://dummyimage.com/420x220/fee2e2/7f1d1d.png&text=hurt";
 const FALLBACK_BLOCK_ANIMATION_URL = "https://dummyimage.com/420x220/d1fae5/065f46.png&text=block";
 const FALLBACK_LOSE_ANIMATION_URL = "https://dummyimage.com/420x220/111827/f8fafc.png&text=lose";
-const EVENT_ANIMATION_DURATION_MS = 2200;
+const ACTION_ANIMATION_DURATION_MS = {
+  attack: 3000,
+  hurt: 3000,
+  block: 3000,
+  win: 3400,
+  lose: 3400
+};
 
 let matchStats = {
   totalAttempts: 0,
@@ -1362,12 +1368,13 @@ function setBattleSceneImage(imageUrl, fallbackUrl) {
   };
 
   sprite.dataset.usedFallback = "0";
-  const sep = imageUrl.includes("?") ? "&" : "?";
-  sprite.src = `${imageUrl}${sep}frame=${Date.now()}`;
+  const normalizedUrl = encodeURI(imageUrl);
+  const sep = normalizedUrl.includes("?") ? "&" : "?";
+  sprite.src = `${normalizedUrl}${sep}frame=${Date.now()}`;
 }
 
 function setBattleIdleScene() {
-  setBattleSceneImage(IDLE_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
+  setBattleSceneImage(IDLE_ANIMATION_URL, FALLBACK_IDLE_ANIMATION_URL);
 }
 
 function clearBattleActionClasses() {
@@ -1619,7 +1626,7 @@ function playActionAnimation(actionType) {
   setTimeout(() => {
     clearBattleActionClasses();
     setBattleIdleScene();
-  }, EVENT_ANIMATION_DURATION_MS);
+  }, ACTION_ANIMATION_DURATION_MS[actionType] || 3000);
 }
 
 function resetGame() {
