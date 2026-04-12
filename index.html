@@ -1,568 +1,88 @@
-i<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MathBattle.com - Math Battle Arena</title>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-      display: flex;
-      height: 100vh;
-    }
-    .sidebar {
-      width: 250px;
-      background: #1a2744;
-      padding: 20px;
-      height: 100vh;
-      box-sizing: border-box;
-      border-right: 2px solid #4a7c99;
-      overflow-y: auto;
-    }
-    .sidebar h3 {
-      color: #ffd700;
-      margin-bottom: 15px;
-      font-size: 18px;
-    }
-    .topic-group {
-      margin-bottom: 15px;
-    }
-    .category-btn {
-      display: block;
-      width: 100%;
-      padding: 18px 12px;
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      margin-bottom: 8px;
-      transition: all 0.3s;
-    }
-    .category-btn:hover {
-      background: #1d4ed8;
-      box-shadow: 0 0 20px rgba(29, 78, 216, 1), 0 0 25px rgba(29, 78, 216, 0.6);
-    }
-    .category-btn.active {
-      background: #ffd700;
-      color: #0f172a;
-      font-weight: bold;
-      box-shadow: 0 0 20px rgba(255, 215, 0, 1), 0 0 25px rgba(255, 215, 0, 0.6);
-    }
-    .difficulty-btns {
-      display: none;
-      gap: 5px;
-      margin-bottom: 8px;
-    }
-    .difficulty-btns.show {
-      display: flex;
-    }
-    .topic-group:first-child .difficulty-btns {
-      display: flex;
-    }
-    .difficulty-btn {
-      flex: 1;
-      padding: 8px 5px;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.3s;
-    }
-    .difficulty-btn:hover {
-      background: #555;
-      box-shadow: 0 0 10px rgba(100, 100, 100, 0.8);
-    }
-    .difficulty-btn.active {
-      background: #22c55e;
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
-    }
-    .main {
-      flex: 1;
-      padding: 40px;
-      overflow-y: auto;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 10px;
-      font-size: 40px;
-    }
-    .play-again-container {
-      min-height: 50px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    #playAgain {
-      display: none;
-      background: #16a34a;
-      font-size: 18px;
-      padding: 15px 30px;
-      box-shadow: 0 0 20px #16a34a, 0 0 40px #16a34a;
-    }
-    #playAgain:hover {
-      background: #15803d;
-      box-shadow: 0 0 20px rgba(22, 163, 74, 1), 0 0 25px rgba(22, 163, 74, 0.6);
-    }
-    .box {
-      margin-top: 20px;
-    }
-    #question {
-      font-size: 28px;
-      margin: 20px 0;
-      min-height: 60px;
-      padding: 20px;
-      background: #1a2744;
-      border-radius: 10px;
-      white-space: pre-line;
-    }
-    input {
-      padding: 12px;
-      font-size: 18px;
-      width: 150px;
-      border-radius: 5px;
-      border: none;
-    }
-    button {
-      padding: 12px 20px;
-      font-size: 16px;
-      margin: 10px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      background: #2563eb;
-      color: white;
-      transition: all 0.3s;
-    }
-    button:hover {
-      background: #1d4ed8;
-      box-shadow: 0 0 20px rgba(37, 99, 235, 1), 0 0 25px rgba(37, 99, 235, 0.6);
-    }
-    button.attack {
-      background: #ff5555;
-    }
-    button.attack:hover {
-      background: #ff3333;
-      box-shadow: 0 0 20px rgba(255, 85, 85, 1), 0 0 25px rgba(255, 51, 51, 0.8);
-    }
-    button.hint {
-      background: #ea580c;
-    }
-    button.hint:hover {
-      background: #c2410c;
-      box-shadow: 0 0 20px rgba(234, 88, 12, 1), 0 0 25px rgba(234, 88, 12, 0.6);
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    .bar {
-      width: 200px;
-      height: 25px;
-      background: rgba(100, 100, 100, 0.5);
-      border-radius: 8px;
-      overflow: hidden;
-      border: 2px solid #666;
-    }
-    .health {
-      height: 100%;
-      transition: width 0.3s, background 0.3s;
-      border-radius: 6px;
-    }
-    #playerHealth {
-      background: linear-gradient(90deg, #3b82f6, #60a5fa);
-    }
-    #enemyHealth {
-      background: linear-gradient(90deg, #10b981, #34d399);
-    }
-    #playerHealth.low-health {
-      background: linear-gradient(90deg, #ef4444, #f87171);
-      animation: pulse 0.8s infinite;
-    }
-    #enemyHealth.low-health {
-      background: linear-gradient(90deg, #ef4444, #f87171);
-      animation: pulse 0.8s infinite;
-    }
-    .health-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-    }
-    .health-label {
-      font-weight: bold;
-      font-size: 14px;
-      color: #ffd700;
-    }
-    #feedback {
-      font-size: 18px;
-      margin: 15px 0;
-      min-height: 30px;
-    }
-    #hint {
-      color: #ffd700;
-      font-style: italic;
-      margin-top: 15px;
-      padding: 15px;
-      background: #1a2744;
-      border-radius: 5px;
-      min-height: 30px;
-    }
-    #hintUsed {
-      color: #ff6b6b;
-      font-size: 14px;
-      margin-top: 10px;
-    }
-    .characters {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      margin-top: 40px;
-      padding: 30px;
-      background: #1a2744;
-      border-radius: 10px;
-      gap: 24px;
-    }
-    .battle-scene {
-      width: fit-content;
-      height: fit-content;
-      max-width: min(560px, 58vw);
-      max-height: min(320px, 38vh);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      overflow: visible;
-      border-radius: 0;
-      border: none;
-      background: transparent;
-      box-shadow: none;
-    }
-    .battle-scene img {
-      width: auto;
-      height: auto;
-      max-width: min(560px, 58vw);
-      max-height: min(320px, 38vh);
-      object-fit: fill;
-      display: block;
-    }
-    .battle-scene.shake {
-      animation: shake 0.5s;
-    }
-    .battle-scene.anim-attack {
-      animation: attackPlayer 0.55s ease;
-    }
-    .battle-scene.anim-hurt {
-      animation: attackEnemy 0.55s ease;
-    }
-    .battle-scene.anim-block {
-      animation: hurtHit 0.5s ease;
-    }
-    .battle-scene.anim-win {
-      animation: winBounce 0.8s ease;
-    }
-    .battle-scene.anim-lose {
-      animation: loseDrop 0.8s ease;
-    }
-    @keyframes attackPlayer {
-      0% { transform: translateX(0) scale(1); }
-      50% { transform: translateX(22px) scale(1.08); }
-      100% { transform: translateX(0) scale(1); }
-    }
-    @keyframes attackEnemy {
-      0% { transform: translateX(0) scale(1); }
-      50% { transform: translateX(-22px) scale(1.08); }
-      100% { transform: translateX(0) scale(1); }
-    }
-    @keyframes hurtHit {
-      0%, 100% { transform: scale(1); filter: brightness(1); }
-      35% { transform: scale(0.9); filter: brightness(1.8); }
-      65% { transform: scale(1.06); filter: brightness(0.8); }
-    }
-    @keyframes winBounce {
-      0% { transform: translateY(0) scale(1); }
-      30% { transform: translateY(-22px) scale(1.08); }
-      60% { transform: translateY(0) scale(1); }
-      80% { transform: translateY(-10px) scale(1.04); }
-      100% { transform: translateY(0) scale(1); }
-    }
-    @keyframes loseDrop {
-      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(18px) rotate(8deg); opacity: 0.65; }
-    }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-10px); }
-      75% { transform: translateX(10px); }
-    }
-    #status {
-      font-size: 32px;
-      font-weight: bold;
-      margin: 10px 0 20px 0;
-      min-height: 45px;
-      padding: 10px 20px;
-      border-radius: 8px;
-      display: block;
-      background: rgba(0, 0, 0, 0.3);
-      border: 2px solid transparent;
-      transition: all 0.3s;
-    }
-    #status.correct {
-      color: #22c55e;
-      background: rgba(34, 197, 94, 0.15);
-      border-color: #22c55e;
-      text-shadow: 0 0 20px rgba(34, 197, 94, 1), 0 0 30px rgba(34, 197, 94, 0.8);
-      box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2);
-    }
-    #status.incorrect {
-      color: #ff3333;
-      background: rgba(255, 51, 51, 0.15);
-      border-color: #ff3333;
-      text-shadow: 0 0 20px rgba(255, 51, 51, 1), 0 0 30px rgba(255, 51, 51, 0.8);
-      box-shadow: 0 0 20px rgba(255, 51, 51, 0.5), inset 0 0 10px rgba(255, 51, 51, 0.2);
-    }
-    #questionCounter {
-      font-size: 18px;
-      color: #ffd700;
-      margin-bottom: 15px;
-      font-weight: bold;
-    }
-    .mode-switch {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .mode-btn {
-      background: #334155;
-      color: #e2e8f0;
-      border: 1px solid #64748b;
-      padding: 10px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .mode-btn.active {
-      background: #f59e0b;
-      color: #0f172a;
-      font-weight: bold;
-      border-color: #f59e0b;
-      box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
-    }
-    #turnIndicator {
-      font-size: 16px;
-      color: #93c5fd;
-      min-height: 24px;
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-    .meta-row {
-      display: flex;
-      justify-content: center;
-      gap: 14px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-    .meta-card {
-      background: #1e293b;
-      border: 1px solid #475569;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 14px;
-      color: #e2e8f0;
-      min-width: 150px;
-    }
-    .powerups {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .power-btn {
-      background: #0ea5e9;
-      font-size: 14px;
-      padding: 8px 12px;
-      margin: 0;
-    }
-    .power-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-    #timer {
-      color: #fbbf24;
-      font-weight: bold;
-      min-height: 22px;
-      margin-bottom: 8px;
-    }
-    #analytics {
-      margin-top: 18px;
-      background: #1a2744;
-      border: 1px solid #4a7c99;
-      border-radius: 10px;
-      padding: 14px;
-      text-align: left;
-      display: none;
-    }
-    #analytics h3 {
-      margin-bottom: 10px;
-      color: #fde68a;
-    }
-    #analytics p {
-      margin-bottom: 6px;
-      font-size: 15px;
-    }
-    .win-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 1100;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(2, 6, 23, 0.68);
-      pointer-events: none;
-    }
-    .win-overlay.show {
-      display: flex;
-    }
-    .win-card {
-      text-align: center;
-      animation: winPop 900ms ease-out;
-    }
-    .win-card img {
-      width: min(460px, 84vw);
-      border-radius: 12px;
-      border: 3px solid #fbbf24;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
-    }
-    .win-card p {
-      margin-top: 10px;
-      font-size: 24px;
-      font-weight: bold;
-      color: #fcd34d;
-      text-shadow: 0 0 18px rgba(252, 211, 77, 0.7);
-    }
-    @keyframes winPop {
-      0% { transform: scale(0.7); opacity: 0; }
-      60% { transform: scale(1.06); opacity: 1; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-    .about-us-toggle {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 1000;
-      background: #f59e0b;
-      color: #0f172a;
-      font-weight: bold;
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
-    }
-    .team-contrib-toggle {
-      position: fixed;
-      left: 16px;
-      bottom: 16px;
-      z-index: 1000;
-      background: #22c55e;
-      color: #0f172a;
-      font-weight: bold;
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35);
-    }
-    .about-panel {
-      position: fixed;
-      right: 16px;
-      bottom: 68px;
-      width: min(380px, calc(100vw - 32px));
-      background: #0b1220;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 14px;
-      z-index: 1000;
-      display: none;
-      box-shadow: 0 14px 36px rgba(2, 6, 23, 0.6);
-    }
-    .about-panel.show {
-      display: block;
-    }
-    .about-panel h3 {
-      margin-bottom: 8px;
-      color: #fcd34d;
-      font-size: 18px;
-    }
-    .about-panel p {
-      font-size: 14px;
-      color: #cbd5e1;
-      margin-bottom: 10px;
-      line-height: 1.4;
-    }
-    #aboutContribText {
-      font-size: 14px;
-      color: #e2e8f0;
-      line-height: 1.5;
-      white-space: pre-line;
-      margin-bottom: 10px;
-    }
-    .about-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 8px;
-      gap: 8px;
-    }
-    .about-note {
-      font-size: 12px;
-      color: #93c5fd;
-      line-height: 1.4;
-    }
-    .contrib-panel {
-      position: fixed;
-      left: 16px;
-      bottom: 68px;
-      width: min(380px, calc(100vw - 32px));
-      background: #0b1220;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 14px;
-      z-index: 1000;
-      display: none;
-      box-shadow: 0 14px 36px rgba(2, 6, 23, 0.6);
-    }
-    .contrib-panel.show {
-      display: block;
-    }
-    .contrib-panel h3 {
-      margin-bottom: 8px;
-      color: #86efac;
-      font-size: 18px;
-    }
-    .contrib-panel p {
-      font-size: 14px;
-      color: #e2e8f0;
-      line-height: 1.5;
-      white-space: pre-line;
-    }
-    #aiStatus {
-      font-size: 13px;
-      color: #93c5fd;
-      margin-top: 8px;
-      min-height: 18px;
-    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #08111f; color: #fff; font-family: Arial, Helvetica, sans-serif; }
+    body { overflow-x: hidden; }
+    .sidebar { width: 250px; background: #0f172a; padding: 20px; overflow-y: auto; border-right: 2px solid #334155; }
+    .topic-group { margin-bottom: 15px; }
+    .category-btn { display: block; width: 100%; padding: 18px 12px; background: #2563eb; color: white; border: none; cursor: pointer; font-size: 16px; margin-bottom: 8px; transition: all 0.3s; border-radius: 5px; }
+    .category-btn:hover { background: #1d4ed8; }
+    .category-btn.active { background: #16a34a; }
+    .difficulty-btns { display: none; gap: 4px; }
+    .difficulty-btns.show { display: flex; }
+    .difficulty-btn { flex: 1; padding: 8px 5px; background: #444; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; transition: all 0.3s; }
+    .difficulty-btn:hover { background: #555; box-shadow: 0 0 10px rgba(100, 100, 100, 0.8); }
+    .difficulty-btn.active { background: #22c55e; box-shadow: 0 0 10px rgba(34, 197, 94, 0.8); }
+    .main { flex: 1; padding: 40px; overflow-y: auto; text-align: center; }
+    h1 { margin-bottom: 10px; font-size: 40px; }
+    .play-again-container { min-height: 50px; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; }
+    #playAgain { display: none; background: #16a34a; font-size: 18px; padding: 15px 30px; box-shadow: 0 0 20px #16a34a, 0 0 40px #16a34a; }
+    #playAgain:hover { background: #15803d; box-shadow: 0 0 20px rgba(22, 163, 74, 1), 0 0 25px rgba(22, 163, 74, 0.6); }
+    .box { margin-top: 20px; }
+    #question { font-size: 28px; margin: 20px 0; min-height: 60px; padding: 20px; background: #1a2744; border-radius: 10px; white-space: pre-line; }
+    input { padding: 12px; font-size: 18px; width: 150px; border-radius: 5px; border: none; }
+    button { padding: 12px 20px; font-size: 16px; margin: 10px; cursor: pointer; border: none; border-radius: 5px; background: #2563eb; color: white; transition: all 0.3s; }
+    button:hover { background: #1d4ed8; box-shadow: 0 0 20px rgba(37, 99, 235, 1), 0 0 25px rgba(37, 99, 235, 0.6); }
+    button.attack { background: #ff5555; }
+    button.attack:hover { background: #ff3333; box-shadow: 0 0 20px rgba(255, 85, 85, 1), 0 0 25px rgba(255, 51, 51, 0.8); }
+    button.hint { background: #ea580c; }
+    button.hint:hover { background: #c2410c; box-shadow: 0 0 20px rgba(234, 88, 12, 1), 0 0 25px rgba(234, 88, 12, 0.6); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .bar { width: 200px; height: 25px; background: rgba(100, 100, 100, 0.5); border-radius: 8px; overflow: hidden; border: 2px solid #666; }
+    .health { height: 100%; transition: width 0.3s, background 0.3s; border-radius: 6px; }
+    #playerHealth { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    #enemyHealth { background: linear-gradient(90deg, #10b981, #34d399); }
+    #playerHealth.low-health, #enemyHealth.low-health { background: linear-gradient(90deg, #ef4444, #f87171); animation: pulse 0.8s infinite; }
+    .health-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .health-label { font-weight: bold; font-size: 14px; color: #ffd700; }
+    #feedback { font-size: 18px; margin: 15px 0; min-height: 30px; }
+    #hint { color: #ffd700; font-style: italic; margin-top: 15px; padding: 15px; background: #1a2744; border-radius: 5px; min-height: 30px; }
+    #hintUsed { color: #ff6b6b; font-size: 14px; margin-top: 10px; }
+    .characters { display: flex; justify-content: space-around; align-items: center; margin-top: 40px; padding: 30px; background: #1a2744; border-radius: 10px; gap: 24px; }
+    .battle-scene { width: fit-content; height: fit-content; max-width: min(560px, 58vw); max-height: min(320px, 38vh); display: inline-flex; align-items: center; justify-content: center; overflow: visible; background: transparent; }
+    .battle-scene img { width: auto; height: auto; max-width: min(560px, 58vw); max-height: min(320px, 38vh); display: block; object-fit: contain; }
+    .battle-scene.shake { animation: shake 0.5s; }
+    .battle-scene.anim-attack { animation: attackPlayer 0.55s ease; }
+    .battle-scene.anim-hurt { animation: attackEnemy 0.55s ease; }
+    .battle-scene.anim-block { animation: hurtHit 0.5s ease; }
+    .battle-scene.anim-win { animation: winBounce 0.8s ease; }
+    .battle-scene.anim-lose { animation: loseDrop 0.8s ease; }
+    @keyframes attackPlayer { 0% { transform: translateX(0) scale(1); } 50% { transform: translateX(22px) scale(1.08); } 100% { transform: translateX(0) scale(1); } }
+    @keyframes attackEnemy { 0% { transform: translateX(0) scale(1); } 50% { transform: translateX(-22px) scale(1.08); } 100% { transform: translateX(0) scale(1); } }
+    @keyframes hurtHit { 0%, 100% { transform: scale(1); filter: brightness(1); } 35% { transform: scale(0.9); filter: brightness(1.8); } 65% { transform: scale(1.06); filter: brightness(0.8); } }
+    @keyframes winBounce { 0% { transform: translateY(0) scale(1); } 30% { transform: translateY(-22px) scale(1.08); } 60% { transform: translateY(0) scale(1); } 80% { transform: translateY(-10px) scale(1.04); } 100% { transform: translateY(0) scale(1); } }
+    @keyframes loseDrop { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(18px) rotate(8deg); opacity: 0.65; } }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+    #status { font-size: 32px; font-weight: bold; margin: 10px 0 20px 0; min-height: 45px; padding: 10px 20px; border-radius: 8px; display: block; background: rgba(0, 0, 0, 0.3); border: 2px solid transparent; transition: all 0.3s; }
+    #status.correct { color: #22c55e; background: rgba(34, 197, 94, 0.15); border-color: #22c55e; text-shadow: 0 0 20px rgba(34, 197, 94, 1), 0 0 30px rgba(34, 197, 94, 0.8); box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2); }
+    #status.incorrect { color: #ff3333; background: rgba(255, 51, 51, 0.15); border-color: #ff3333; text-shadow: 0 0 20px rgba(255, 51, 51, 1), 0 0 30px rgba(255, 51, 51, 0.8); box-shadow: 0 0 20px rgba(255, 51, 51, 0.5), inset 0 0 10px rgba(255, 51, 51, 0.2); }
+    #questionCounter { font-size: 18px; color: #ffd700; margin-bottom: 15px; font-weight: bold; }
+    .mode-switch { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; }
+    .mode-btn { background: #334155; color: #e2e8f0; border: 1px solid #64748b; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    .mode-btn.active { background: #f59e0b; color: #0f172a; font-weight: bold; border-color: #f59e0b; box-shadow: 0 0 12px rgba(245, 158, 11, 0.6); }
+    #turnIndicator { font-size: 16px; color: #93c5fd; min-height: 24px; margin-bottom: 10px; font-weight: bold; }
+    .meta-row { display: flex; justify-content: center; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+    .meta-card { background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 8px 12px; font-size: 14px; color: #e2e8f0; min-width: 150px; }
+    #timer { color: #fbbf24; font-weight: bold; min-height: 22px; margin-bottom: 8px; }
+    #analytics { margin-top: 18px; background: #1a2744; border: 1px solid #4a7c99; border-radius: 10px; padding: 14px; text-align: left; display: none; }
+    #analytics h3 { margin-bottom: 10px; color: #fde68a; }
+    #analytics p { margin-bottom: 6px; font-size: 15px; }
+    .about-us-toggle { position: fixed; left: 16px; top: 16px; z-index: 1000; background: #f59e0b; color: #0f172a; font-weight: bold; padding: 10px 14px; border-radius: 999px; border: none; cursor: pointer; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4); }
+    .team-contrib-toggle { position: fixed; left: 16px; bottom: 16px; z-index: 1000; background: #22c55e; color: #0f172a; font-weight: bold; padding: 10px 14px; border-radius: 999px; border: none; cursor: pointer; box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35); }
+    .about-panel, .contrib-panel { position: fixed; bottom: 68px; width: min(380px, calc(100vw - 32px)); background: #0b1220; border: 1px solid #334155; border-radius: 12px; padding: 14px; z-index: 1000; display: none; box-shadow: 0 14px 36px rgba(2, 6, 23, 0.6); }
+    .about-panel { right: 16px; }
+    .contrib-panel { left: 16px; }
+    .about-panel.show, .contrib-panel.show { display: block; }
+    .about-panel h3 { margin-bottom: 8px; color: #fcd34d; font-size: 18px; }
+    .contrib-panel h3 { margin-bottom: 8px; color: #86efac; font-size: 18px; }
+    .about-panel p, .contrib-panel p { font-size: 14px; color: #e2e8f0; line-height: 1.5; white-space: pre-line; margin-bottom: 10px; }
+    #aboutContribText { font-size: 14px; color: #e2e8f0; line-height: 1.5; white-space: pre-line; margin-bottom: 10px; }
+    #aiStatus { font-size: 13px; color: #93c5fd; margin-top: 8px; min-height: 18px; }
   </style>
 </head>
 
@@ -657,10 +177,6 @@ i<!DOCTYPE html>
     <button id="classicModeBtn" class="mode-btn active" onclick="setGameMode('classic')">Classic Mode</button>
     <button id="speedModeBtn" class="mode-btn" onclick="setGameMode('speed')">Speed Mode (Turn-Based)</button>
   </div>
-  <div class="powerups">
-    <button id="useDoubleBtn" class="power-btn" onclick="usePowerup('double')">Double Damage (0)</button>
-    <button id="useSkipBtn" class="power-btn" onclick="usePowerup('skip')">Skip Solve (0)</button>
-  </div>
   <div id="aiStatus">AI hints/questions: checking backend...</div>
   <div id="turnIndicator"></div>
   <div id="timer"></div>
@@ -725,6 +241,17 @@ let streak = 0;
 let hintUsedCount = 0;
 let questionsAnswered = 0;
 
+
+
+let blockCombo = 0;
+let pendingAttackMultiplier = 1;
+
+
+let coins = 0;
+
+const selectedCharacter = "wizard";
+const selectedCharacterLabel = "Wizard";
+
 let correctAnswer = 0;
 let currentCategory = "addition";
 let currentDifficulty = "easy";
@@ -740,21 +267,6 @@ let timerRemaining = 0;
 let timerInterval = null;
 let pendingTimerTimeout = null;
 
-let blockCombo = 0;
-let pendingAttackMultiplier = 1;
-let shieldActive = false;
-let nextAttackDouble = false;
-
-let coins = 0;
-
-const selectedCharacter = "wizard";
-const selectedCharacterLabel = "Wizard";
-
-let powerups = {
-  double: 0,
-  skip: 0
-};
-
 const enemyTypes = {
   standard: { label: "Standard", hp: 100, dmgMult: 1.0, tricksterBoost: 0 },
   berserker: { label: "Berserker", hp: 80, dmgMult: 1.5, tricksterBoost: 0 },
@@ -766,17 +278,17 @@ let currentEnemyType = "standard";
 const PUBLIC_TEAM_CONTRIBUTIONS = [
   "Team Contributions:",
   "- Built a turn-based math battle game with classic and speed modes.",
-  "- Added enemy behaviors, combo multipliers, rewards, and power-ups.",
+  "- Added enemy behaviors, combo multipliers, rewards, and gameplay polish.",
   "- Implemented analytics for accuracy, response time, and weakest topic.",
-  "- Designed responsive UI and quality-of-life gameplay fixes."
+  "- Designed responsive UI and reliability fixes for mobile and desktop."
 ].join("\n");
 
-const IDLE_ANIMATION_URL = "./Irvington_Hackathon/assets/Idle.gif";
-const WIN_ANIMATION_URL = "./Irvington_Hackathon/assets/Win.gif";
-const ATTACK_ANIMATION_URL = "./Irvington_Hackathon/assets/atk.gif";
-const HURT_ANIMATION_URL = "./Irvington_Hackathon/assets/hrt.gif";
-const BLOCK_ANIMATION_URL = "./Irvington_Hackathon/assets/block.gif";
-const LOSE_ANIMATION_URL = "./Irvington_Hackathon/assets/lose.gif";
+const IDLE_ANIMATION_URLS = ["./Irvington_Hackathon/assets/Idle.gif", "./Irvington_Hackathon/assets/idle.gif", "./assets/Idle.gif", "./assets/idle.gif", "/Irvington_Hackathon/assets/Idle.gif", "/Irvington_Hackathon/assets/idle.gif", "/assets/Idle.gif", "/assets/idle.gif"];
+const WIN_ANIMATION_URLS = ["./Irvington_Hackathon/assets/Win.gif", "./Irvington_Hackathon/assets/win.gif", "./assets/Win.gif", "./assets/win.gif", "/Irvington_Hackathon/assets/Win.gif", "/Irvington_Hackathon/assets/win.gif", "/assets/Win.gif", "/assets/win.gif"];
+const ATTACK_ANIMATION_URLS = ["./Irvington_Hackathon/assets/atk.gif", "./assets/atk.gif", "/Irvington_Hackathon/assets/atk.gif", "/assets/atk.gif"];
+const HURT_ANIMATION_URLS = ["./Irvington_Hackathon/assets/hrt.gif", "./assets/hrt.gif", "/Irvington_Hackathon/assets/hrt.gif", "/assets/hrt.gif"];
+const BLOCK_ANIMATION_URLS = ["./Irvington_Hackathon/assets/block.gif", "./assets/block.gif", "/Irvington_Hackathon/assets/block.gif", "/assets/block.gif"];
+const LOSE_ANIMATION_URLS = ["./Irvington_Hackathon/assets/lose.gif", "./Irvington_Hackathon/assets/lose.gif", "./assets/lose.gif", "/Irvington_Hackathon/assets/lose.gif", "/assets/lose.gif"];
 const FALLBACK_WIN_ANIMATION_URL = "https://dummyimage.com/420x220/e5e7eb/111827.png&text=winning";
 const FALLBACK_IDLE_ANIMATION_URL = "https://dummyimage.com/420x220/e5e7eb/111827.png&text=idle";
 const FALLBACK_ATTACK_ANIMATION_URL = "https://dummyimage.com/420x220/dbeafe/1e3a8a.png&text=attack";
@@ -817,11 +329,7 @@ function updateMetaUI() {
   document.getElementById("coinsDisplay").innerText = `Coins: ${coins}`;
   document.getElementById("characterDisplay").innerText = `Character: ${selectedCharacterLabel}`;
   document.getElementById("comboDisplay").innerText = `Block Combo: x${pendingAttackMultiplier.toFixed(1)}`;
-  document.getElementById("useDoubleBtn").innerText = `Double Damage (${powerups.double})`;
-  document.getElementById("useSkipBtn").innerText = `Skip Solve (${powerups.skip})`;
 
-  document.getElementById("useDoubleBtn").disabled = powerups.double <= 0 || !gameActive;
-  document.getElementById("useSkipBtn").disabled = powerups.skip <= 0 || !gameActive;
 }
 
 async function requestAiQuestion() {
@@ -846,6 +354,7 @@ async function requestAiQuestion() {
     if (!response.ok) return null;
 
     const data = await response.json();
+
     if (!data || !data.question || data.answer === undefined) return null;
 
     return data;
@@ -1007,24 +516,7 @@ function rewardMatch(isWin) {
   coins += baseCoins + performanceBonus;
 
   if (isWin) {
-    powerups.double += 1;
-    powerups.skip += 1;
   }
-  updateMetaUI();
-}
-
-function usePowerup(kind) {
-  if (!gameActive || powerups[kind] <= 0) return;
-
-  if (kind === "double") {
-    nextAttackDouble = true;
-    powerups.double -= 1;
-    document.getElementById("feedback").innerText = "⚔️ Double damage ready for your next successful attack.";
-  } else if (kind === "skip") {
-    powerups.skip -= 1;
-    processAnswer(true, false, activeQuestionId, "", true);
-  }
-
   updateMetaUI();
 }
 
@@ -1333,24 +825,38 @@ function shakeCharacter(isPlayer) {
   battleScene.classList.add("shake");
 }
 
-function setBattleSceneImage(imageUrl, fallbackUrl) {
+function setBattleSceneImage(imageUrls, fallbackUrl) {
   const sprite = document.getElementById("battleSceneImg");
   if (!sprite) return;
 
-  sprite.onerror = () => {
-    if (sprite.dataset.usedFallback === "1") return;
-    sprite.dataset.usedFallback = "1";
-    sprite.src = fallbackUrl;
-  };
+  const candidates = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+  let attemptIndex = 0;
 
   sprite.dataset.usedFallback = "0";
-  const normalizedUrl = encodeURI(imageUrl);
-  const sep = normalizedUrl.includes("?") ? "&" : "?";
-  sprite.src = `${normalizedUrl}${sep}frame=${Date.now()}`;
+
+  const tryNextCandidate = () => {
+    if (attemptIndex >= candidates.length) {
+      sprite.dataset.usedFallback = "1";
+      sprite.src = fallbackUrl;
+      return;
+    }
+
+    const nextUrl = encodeURI(candidates[attemptIndex++]);
+    const probe = new Image();
+    probe.onload = () => {
+      if (sprite.dataset.usedFallback === "1") return;
+      const sep = nextUrl.includes("?") ? "&" : "?";
+      sprite.src = `${nextUrl}${sep}frame=${Date.now()}`;
+    };
+    probe.onerror = tryNextCandidate;
+    probe.src = nextUrl;
+  };
+
+  tryNextCandidate();
 }
 
 function setBattleIdleScene() {
-  setBattleSceneImage(IDLE_ANIMATION_URL, FALLBACK_IDLE_ANIMATION_URL);
+  setBattleSceneImage(IDLE_ANIMATION_URLS, FALLBACK_IDLE_ANIMATION_URL);
 }
 
 function clearBattleActionClasses() {
@@ -1360,7 +866,7 @@ function clearBattleActionClasses() {
   });
 }
 
-function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, usedSkip) {
+function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer) {
   if (!gameActive || questionLocked || waitingForNextQuestion || questionIdAtAnswer !== activeQuestionId) return;
 
   setAnswerLockState(true);
@@ -1409,17 +915,14 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
       if (isCorrect) {
         streak++;
         const baseDamage = 10 + (streak >= 3 ? 10 : 0);
-        let damage = Math.round(baseDamage * pendingAttackMultiplier * (nextAttackDouble ? 2 : 1));
+        let damage = Math.round(baseDamage * pendingAttackMultiplier);
         enemyHP -= damage;
         if (enemyHP > 0) {
           playActionAnimation("attack");
         }
         pendingAttackMultiplier = 1;
         blockCombo = 0;
-        nextAttackDouble = false;
-        document.getElementById("feedback").innerText = usedSkip
-          ? `⏭️ Skip used! Auto-attack hit for ${damage}.`
-          : `⚡ Hit! You dealt ${damage} damage.`;
+        document.getElementById("feedback").innerText = `⚡ Hit! You dealt ${damage} damage.`;
         document.getElementById("status").innerText = "✅ Attack landed";
         document.getElementById("status").className = "correct";
         shakeCharacter(false);
@@ -1438,30 +941,21 @@ function processAnswer(isCorrect, isTimeout, questionIdAtAnswer, userAnswer, use
         blockCombo += 1;
         pendingAttackMultiplier = clampValue(1 + blockCombo * 0.25, 1, 3);
         playActionAnimation("block");
-        document.getElementById("feedback").innerText = usedSkip
-          ? "⏭️ Skip used! Enemy attack blocked."
-          : "🛡️ Perfect block! No damage taken.";
+        document.getElementById("feedback").innerText = "🛡️ Perfect block! No damage taken.";
         document.getElementById("status").innerText = `✅ Attack blocked (Combo x${pendingAttackMultiplier.toFixed(1)})`;
         document.getElementById("status").className = "correct";
       } else {
         const enemyDamage = getEnemyDamage();
-        if (shieldActive) {
-          shieldActive = false;
-          document.getElementById("feedback").innerText = "🛡️ Shield absorbed enemy damage!";
-          document.getElementById("status").innerText = "✅ Shield blocked hit";
-          document.getElementById("status").className = "correct";
-        } else {
-          playerHP -= enemyDamage;
-          if (playerHP > 0) {
-            playActionAnimation("hurt");
-          }
-          document.getElementById("feedback").innerText = isTimeout
-            ? `⌛ Too slow! You took ${enemyDamage}. Correct answer: ${correctAnswer}`
-            : `💥 You got hit for ${enemyDamage}! Correct answer: ${correctAnswer}`;
-          document.getElementById("status").innerText = "❌ Block failed";
-          document.getElementById("status").className = "incorrect";
-          shakeCharacter(true);
+        playerHP -= enemyDamage;
+        if (playerHP > 0) {
+          playActionAnimation("hurt");
         }
+        document.getElementById("feedback").innerText = isTimeout
+          ? `⌛ Too slow! You took ${enemyDamage}. Correct answer: ${correctAnswer}`
+          : `💥 You got hit for ${enemyDamage}! Correct answer: ${correctAnswer}`;
+        document.getElementById("status").innerText = "❌ Block failed";
+        document.getElementById("status").className = "incorrect";
+        shakeCharacter(true);
         blockCombo = 0;
         pendingAttackMultiplier = 1;
       }
@@ -1576,19 +1070,19 @@ function playActionAnimation(actionType) {
   clearBattleActionClasses();
 
   if (actionType === "attack") {
-    setBattleSceneImage(ATTACK_ANIMATION_URL, FALLBACK_ATTACK_ANIMATION_URL);
+    setBattleSceneImage(ATTACK_ANIMATION_URLS, FALLBACK_ATTACK_ANIMATION_URL);
     battleScene.classList.add("anim-attack");
   } else if (actionType === "hurt") {
-    setBattleSceneImage(HURT_ANIMATION_URL, FALLBACK_HURT_ANIMATION_URL);
+    setBattleSceneImage(HURT_ANIMATION_URLS, FALLBACK_HURT_ANIMATION_URL);
     battleScene.classList.add("anim-hurt");
   } else if (actionType === "block") {
-    setBattleSceneImage(BLOCK_ANIMATION_URL, FALLBACK_BLOCK_ANIMATION_URL);
+    setBattleSceneImage(BLOCK_ANIMATION_URLS, FALLBACK_BLOCK_ANIMATION_URL);
     battleScene.classList.add("anim-block");
   } else if (actionType === "lose") {
-    setBattleSceneImage(LOSE_ANIMATION_URL, FALLBACK_LOSE_ANIMATION_URL);
+    setBattleSceneImage(LOSE_ANIMATION_URLS, FALLBACK_LOSE_ANIMATION_URL);
     battleScene.classList.add("anim-lose");
   } else {
-    setBattleSceneImage(WIN_ANIMATION_URL, FALLBACK_WIN_ANIMATION_URL);
+    setBattleSceneImage(WIN_ANIMATION_URLS, FALLBACK_WIN_ANIMATION_URL);
     battleScene.classList.add("anim-win");
   }
 
@@ -1613,8 +1107,7 @@ function resetGame() {
   currentTurn = "player";
   blockCombo = 0;
   pendingAttackMultiplier = 1;
-  shieldActive = false;
-  nextAttackDouble = false;
+
   matchStats = {
     totalAttempts: 0,
     correctAttempts: 0,
@@ -1681,3 +1174,5 @@ checkAiStatus();
 
 </body>
 </html>
+
+
