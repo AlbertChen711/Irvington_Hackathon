@@ -1556,23 +1556,8 @@ async function getHint() {
   
   const hintElement = document.getElementById("hint");
   hintUsedCount++;
-  
-  let localHint = "";
 
-  // Logic to give a custom hint based on what category you are playing
-  if (currentCategory === "addition") {
-    localHint = "💡 Tip: Try breaking the numbers apart! (e.g., 12 + 15 is 10+10 and 2+5)";
-  } else if (currentCategory === "subtraction") {
-    localHint = "💡 Tip: Count up from the smaller number to the bigger one!";
-  } else if (currentCategory === "multiplication") {
-    localHint = "💡 Tip: Think of this as groups. 3 × 4 is 3 groups of 4!";
-  } else if (currentCategory === "algebra") {
-    localHint = "💡 Tip: To find x, do the opposite! If it's multiplying, you should divide.";
-  } else if (currentCategory === "geometry") {
-    localHint = "💡 Tip: Area is usually base × height. For circles, use 3.14!";
-  } else {
-    localHint = "💡 Tip: Double-check your mental math, you've got this! ✨";
-  }
+  hintElement.innerText = "Thinking...";
 
   try {
     const controller = new AbortController();
@@ -1585,6 +1570,9 @@ async function getHint() {
         question: currentQuestion,
         answer: correctAnswer,
         category: currentCategory,
+        difficulty: currentDifficulty,
+        mode: gameMode,
+        turn: currentTurn,
       }),
       signal: controller.signal,
     });
@@ -1594,16 +1582,17 @@ async function getHint() {
     if (response.ok) {
       const data = await response.json();
       if (data && data.hint) {
-        localHint = data.hint;
+        hintElement.innerText = data.hint;
+        document.getElementById("hintUsed").innerText = "⚠️ Hint used! You got a helpful tip!";
+        return;
       }
     }
   } catch (error) {
-    // Fall back to the local hint text below.
+    // Fall back to a generic message if the backend is unavailable.
   }
 
-  // Display the hint instantly!
-  hintElement.innerText = localHint;
-  document.getElementById("hintUsed").innerText = "⚠️ Hint used! You got a helpful tip!";
+  hintElement.innerText = "Hint unavailable right now. Try spotting the operation first, then work one step at a time.";
+  document.getElementById("hintUsed").innerText = "⚠️ Hint used! Try again after the server responds.";
 }
 function playActionAnimation(actionType) {
   const battleScene = document.getElementById("battleScene");
