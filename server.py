@@ -3,11 +3,85 @@ from flask_cors import CORS
 import os
 import re
 import hashlib
+import json
+import urllib.request
+import urllib.error
 
 app = Flask(__name__)
 CORS(app)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+USE_FREE_LLM_HINTS = os.getenv("USE_FREE_LLM_HINTS", "1").strip().lower() not in {"0", "false", "no"}
+
+
+def _post_json(url, payload, timeout_seconds=2.5):
+    body = json.dumps(payload).encode("utf-8")
+    request_obj = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request_obj, timeout=timeout_seconds) as response:
+        data = response.read().decode("utf-8", errors="ignore")
+    return json.loads(data)
+
+
+def _ollama_available():
+    if not USE_FREE_LLM_HINTS:
+        return False
+    tags_url = f"{OLLAMA_URL.rstrip('/')}/api/tags"
+    try:
+        with urllib.request.urlopen(tags_url, timeout=1.2) as response:
+            if response.status != 200:
+                return False
+            raw = response.read().decode("utf-8", errors="ignore")
+            parsed = json.loads(raw)
+            models = parsed.get("models", [])
+            return any(model.get("name") == OLLAMA_MODEL for model in models)
+    except Exception:
+        return False
+
+
+def _free_llm_hint(question_text, category_text, answer_text):
+    if not USE_FREE_LLM_HINTS:
+        return None
+
+    prompt = (
+        "You are a friendly math tutor for students. "
+        "Give only a short hint in 1-2 sentences. "
+        "Do not reveal the final answer. "
+        "Base your hint on the operation type and the numbers in the problem.\n\n"
+        f"Category: {category_text or 'unknown'}\n"
+        f"Problem: {question_text}\n"
+        f"Expected answer (hidden, do not reveal): {answer_text}"
+    )
+
+    chat_url = f"{OLLAMA_URL.rstrip('/')}/api/chat"
+    payload = {
+        "model": OLLAMA_MODEL,
+        "stream": False,
+        "messages": [
+            {"role": "system", "content": "Keep hints concise and never give away the final numeric answer."},
+            {"role": "user", "content": prompt},
+        ],
+        "options": {"temperature": 0.35},
+    }
+
+    try:
+        result = _post_json(chat_url, payload, timeout_seconds=2.8)
+        message = result.get("message", {})
+        hint_text = str(message.get("content", "")).strip()
+        if hint_text:
+            return hint_text
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError):
+        return None
+    except Exception:
+        return None
+
+    return None
 
 
 def _format_numbers(numbers):
@@ -379,6 +453,144 @@ def generate_hint(question, category="", answer=""):
     return "Break the problem into small steps, solve the easiest part first, then combine your work."
 
 
+def _parse_float(value, default=0.0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def generate_smart_hint(question, category="", answer="", difficulty=""):
+    question_text = str(question or "").strip()
+    category_text = str(category or "").lower().strip()
+    difficulty_text = str(difficulty or "").lower().strip()
+    lower_question = question_text.lower()
+
+    if not question_text:
+        return "Read the question carefully, list the known values, and decide the operation before solving."
+
+    # Core arithmetic forms: a + b, a - b, a × b, a ÷ b
+    arithmetic_match = re.search(r"(-?\d+(?:\.\d+)?)\s*([+\-×÷*/x])\s*(-?\d+(?:\.\d+)?)", question_text)
+    if arithmetic_match:
+        left = arithmetic_match.group(1)
+        op = arithmetic_match.group(2)
+        right = arithmetic_match.group(3)
+        if op == "+":
+            return f"Add {left} and {right} by place value: ones first, then tens/hundreds. If a column is 10 or more, carry to the next column."
+        if op == "-":
+            return f"Subtract {right} from {left} starting from the rightmost place. Regroup (borrow) if a top digit is smaller than the bottom digit."
+        if op in ["×", "x", "*"]:
+            return f"Treat {left} × {right} as equal groups or use partial products. Break one factor into smaller parts if mental math is easier."
+        if op in ["÷", "/"]:
+            return f"Think of {left} ÷ {right} as how many groups of {right} fit into {left}. Estimate first, then refine."
+
+    # Fractions: a/b op c/d
+    fraction_match = re.search(r"([+-]?\d+)\s*/\s*([+-]?\d+)\s*([+\-×÷*/])\s*([+-]?\d+)\s*/\s*([+-]?\d+)", question_text)
+    if fraction_match:
+        a = int(fraction_match.group(1))
+        b = int(fraction_match.group(2))
+        op = fraction_match.group(3)
+        c = int(fraction_match.group(4))
+        d = int(fraction_match.group(5))
+        if op in ["+", "-"]:
+            lcd = abs(b * d)
+            return f"Use a common denominator first (for example {lcd}). Rewrite {a}/{b} and {c}/{d} with that denominator, then combine only the numerators and simplify."
+        if op in ["×", "*"]:
+            return f"Multiply straight across: numerators ({a} and {c}) and denominators ({b} and {d}), then reduce the result."
+        return f"For division, keep {a}/{b}, flip {c}/{d} to {d}/{c}, then multiply and simplify."
+
+    # Algebra: ax = b
+    linear_match = re.search(r"([+-]?\d+)\s*x\s*=\s*([+-]?\d+)", question_text, re.IGNORECASE)
+    if linear_match:
+        coeff = int(linear_match.group(1))
+        rhs = int(linear_match.group(2))
+        if coeff != 0:
+            return f"Isolate x by dividing both sides by {coeff}. That turns {coeff}x = {rhs} into x = {rhs}/{coeff}."
+
+    # Geometry patterns from the app's question templates
+    rect_area_match = re.search(r"rectangle\s+area\s*:\s*(\d+)\s*[×x*]\s*(\d+)", lower_question)
+    if rect_area_match:
+        w = int(rect_area_match.group(1))
+        h = int(rect_area_match.group(2))
+        return f"For rectangle area, multiply width by height: {w} × {h}. Keep units in square form."
+
+    tri_area_match = re.search(r"triangle\s+area\s*:\s*(\d+)\s*[×x*]\s*(\d+)\s*/\s*2", lower_question)
+    if tri_area_match:
+        base = int(tri_area_match.group(1))
+        height = int(tri_area_match.group(2))
+        return f"Triangle area is (base × height) / 2. Multiply {base} and {height} first, then divide by 2."
+
+    rect_perim_match = re.search(r"rectangle\s+perimeter\s*:\s*(\d+)\s*[×x*]\s*(\d+)", lower_question)
+    if rect_perim_match:
+        length = int(rect_perim_match.group(1))
+        width = int(rect_perim_match.group(2))
+        return f"Rectangle perimeter is 2(length + width). Compute 2({length} + {width}) in that order."
+
+    circle_area_match = re.search(r"circle\s+area\s*:\s*r\s*=\s*(\d+)", lower_question)
+    if circle_area_match:
+        radius = int(circle_area_match.group(1))
+        return f"Circle area uses πr². Square the radius first ({radius}²), then multiply by π (use 3.14 if requested)."
+
+    circle_circ_match = re.search(r"circle\s+circumference\s*:\s*r\s*=\s*(\d+)", lower_question)
+    if circle_circ_match:
+        radius = int(circle_circ_match.group(1))
+        return f"Circumference uses 2πr. Multiply 2, π, and r with r = {radius}."
+
+    hyp_match = re.search(r"right\s+triangle\s+hypotenuse\s*:\s*(\d+)\s*,\s*(\d+)", lower_question)
+    if hyp_match:
+        a = int(hyp_match.group(1))
+        b = int(hyp_match.group(2))
+        return f"Use the Pythagorean theorem: c² = {a}² + {b}². Add those squares, then take the square root."
+
+    prism_match = re.search(r"rectangular\s+prism\s+volume\s*:\s*(\d+)\s*[×x*]\s*(\d+)\s*[×x*]\s*(\d+)", lower_question)
+    if prism_match:
+        l = int(prism_match.group(1))
+        w = int(prism_match.group(2))
+        h = int(prism_match.group(3))
+        return f"Rectangular prism volume is length × width × height. Multiply {l}, {w}, and {h} carefully."
+
+    sphere_match = re.search(r"sphere\s+volume\s*:\s*r\s*=\s*(\d+)", lower_question)
+    if sphere_match:
+        r = int(sphere_match.group(1))
+        return f"Sphere volume is (4/3)πr³. Compute r³ first with r = {r}, then multiply by (4/3)π."
+
+    cone_match = re.search(r"cone\s+volume\s*:\s*r\s*=\s*(\d+)\s*,\s*h\s*=\s*(\d+)", lower_question)
+    if cone_match:
+        r = int(cone_match.group(1))
+        h = int(cone_match.group(2))
+        return f"Cone volume is (1/3)πr²h. Compute r² with r = {r}, multiply by h = {h}, then divide by 3."
+
+    # Calculus question templates from the app
+    deriv_xn_match = re.search(r"derivative\s+of\s+x\^(\d+)", lower_question)
+    if deriv_xn_match:
+        n = int(deriv_xn_match.group(1))
+        return f"Use the power rule: d/dx(x^{n}) = {n}x^{n - 1}. Your coefficient should be {n}."
+
+    deriv_axn_match = re.search(r"derivative\s+of\s*(\d+)x\^(\d+)", lower_question)
+    if deriv_axn_match:
+        a = int(deriv_axn_match.group(1))
+        b = int(deriv_axn_match.group(2))
+        return f"Power rule with coefficient: d/dx({a}x^{b}) = ({a}×{b})x^{b - 1}. Multiply {a} and {b} for the new coefficient."
+
+    int_axn_match = re.search(r"integral\s+of\s*(\d+)x\^(\d+)", lower_question)
+    if int_axn_match:
+        a = int(int_axn_match.group(1))
+        b = int(int_axn_match.group(2))
+        return f"For ∫{a}x^{b}dx, add 1 to the exponent first, then divide the coefficient {a} by that new exponent."
+
+    # Wording-specific fallback with extracted values
+    numeric_values = [value for value in re.findall(r"-?\d+(?:\.\d+)?", question_text)]
+    if numeric_values:
+        joined = ", ".join(numeric_values[:4])
+        if category_text:
+            return f"This is a {category_text} problem. Use the key values ({joined}) and solve one operation at a time before combining steps."
+        if difficulty_text:
+            return f"Use the key values ({joined}) and keep your steps organized for {difficulty_text} difficulty: choose operation, compute, then check reasonableness."
+        return f"Use the key values ({joined}), identify the operation the question asks for, then solve in small steps and check your result."
+
+    return "Identify what the problem is asking, write the relevant formula or operation, then solve one clear step at a time."
+
+
 @app.route("/")
 def home():
     return send_file(os.path.join(BASE_DIR, "index.html"))
@@ -396,7 +608,12 @@ def static_files(requested_path):
 
 @app.route("/ai_status", methods=["GET"])
 def ai_status():
-    return jsonify({"configured": False})
+    free_llm_online = _ollama_available()
+    return jsonify({
+        "configured": free_llm_online,
+        "provider": "ollama-free-local" if free_llm_online else "local-rule-engine",
+        "model": OLLAMA_MODEL if free_llm_online else None,
+    })
 
 
 @app.route("/hint", methods=["POST"])
@@ -405,8 +622,25 @@ def hint():
     question = data.get("question", "")
     category = data.get("category", "")
     answer = data.get("answer", "")
+    difficulty = data.get("difficulty", "")
+
+    llm_hint = _free_llm_hint(question, category, answer)
+    if llm_hint:
+        return jsonify({
+            "hint": llm_hint,
+            "source": "free-llm",
+        })
+
+    smart_hint = generate_smart_hint(question, category=category, answer=answer, difficulty=difficulty)
+    if smart_hint:
+        return jsonify({
+            "hint": smart_hint,
+            "source": "smart-local-engine",
+        })
+
     return jsonify({
-        "hint": generate_hint(question, category=category, answer=answer)
+        "hint": generate_hint(question, category=category, answer=answer),
+        "source": "local-rule-engine",
     })
 
 
