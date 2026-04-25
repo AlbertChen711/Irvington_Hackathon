@@ -670,7 +670,7 @@
   <div class="box">
     <h2 id="question">Select a category to start!</h2>
 
-    <input id="answer" type="number" placeholder="Enter answer" onkeypress="if(event.key==='Enter') submitAnswer()">
+    <input id="answer" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Enter answer" onkeypress="if(event.key==='Enter') submitAnswer()">
     <button class="attack" onclick="submitAnswer()">⚡ Attack</button>
     <button class="hint" onclick="getHint()">💡 Get Hint</button>
 
@@ -795,6 +795,143 @@ let matchStats = {
 
 function clampValue(v, min, max) {
   return Math.min(max, Math.max(min, v));
+}
+
+function greatestCommonDivisor(a, b) {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y !== 0) {
+    const remainder = x % y;
+    x = y;
+    y = remainder;
+  }
+  return x || 1;
+}
+
+function parseFractionValue(value) {
+  const text = String(value).trim();
+  const match = text.match(/^([+-]?\d+)\s*\/\s*([+-]?\d+)$/);
+  if (!match) return null;
+
+  const numerator = parseInt(match[1], 10);
+  const denominator = parseInt(match[2], 10);
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) return null;
+
+  const sign = denominator < 0 ? -1 : 1;
+  const divisor = greatestCommonDivisor(numerator, denominator);
+  return {
+    numerator: sign * numerator / divisor,
+    denominator: Math.abs(denominator) / divisor,
+  };
+}
+
+function fractionsAreEquivalent(leftValue, rightValue) {
+  const left = parseFractionValue(leftValue);
+  const right = parseFractionValue(rightValue);
+  if (!left || !right) return false;
+  return left.numerator === right.numerator && left.denominator === right.denominator;
+}
+
+function pickHintVariant(seedText, options) {
+  const text = String(seedText || "");
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  }
+  return options[hash % options.length];
+}
+
+function buildLocalHint(question, answer, category) {
+  const q = String(question || "").trim();
+  const a = String(answer ?? "").trim();
+  const numbers = q.match(/-?\d+(?:\.\d+)?/g) || [];
+
+  if (category === "addition") {
+    return pickHintVariant(q, [
+      `Break it into parts: add ${numbers[0] || "the first number"} and ${numbers[1] || "the second number"} one place value at a time.`,
+      "Start with the smaller place values and carry if needed."
+    ]);
+  }
+
+  if (category === "subtraction") {
+    return pickHintVariant(q, [
+      `Subtract ${numbers[1] || "the second number"} from ${numbers[0] || "the first number"}. Borrow when a top digit is smaller.`,
+      "Work from right to left and check with addition afterward."
+    ]);
+  }
+
+  if (category === "multiplication") {
+    return pickHintVariant(q, [
+      `Multiply ${numbers[0] || "the first factor"} by ${numbers[1] || "the second factor"} using partial products if needed.`,
+      "Estimate first, then compute exactly and compare to your estimate."
+    ]);
+  }
+
+  if (category === "fractions") {
+    const fracMatch = q.match(/^\s*([+-]?\d+)\s*\/\s*([+-]?\d+)\s*([+\-×÷])\s*([+-]?\d+)\s*\/\s*([+-]?\d+)\s*$/);
+    if (fracMatch) {
+      const op = fracMatch[3];
+      if (op === "+" || op === "-") {
+        return `Find a common denominator first (try ${Math.abs(parseInt(fracMatch[2], 10) * parseInt(fracMatch[5], 10))}), then combine numerators and simplify.`;
+      }
+      if (op === "×") {
+        return "Multiply straight across: numerator by numerator, denominator by denominator, then reduce the fraction.";
+      }
+      return "For division, multiply by the reciprocal of the second fraction, then simplify.";
+    }
+    return "Look at the operation between the fractions, apply that rule, and simplify your final fraction.";
+  }
+
+  if (category === "decimals") {
+    if (q.includes("+") || q.includes("-")) {
+      return "Line up decimal points first, then add or subtract digit by digit.";
+    }
+    if (q.includes("×")) {
+      return "Multiply as whole numbers first, then place the decimal using total decimal places from both factors.";
+    }
+    if (q.includes("÷")) {
+      return "Shift decimals to make the divisor a whole number, then divide.";
+    }
+    return "Use place value and decimal alignment before calculating.";
+  }
+
+  if (category === "algebra") {
+    const algebraMatch = q.match(/^\s*([+-]?\d+)x\s*=\s*([+-]?\d+)\s*$/i);
+    if (algebraMatch) {
+      return `Isolate x by dividing both sides by ${algebraMatch[1]}.`;
+    }
+    return "Undo operations in reverse order to isolate x.";
+  }
+
+  if (category === "geometry") {
+    if (q.toLowerCase().includes("rectangle area")) return "Rectangle area formula: length × width.";
+    if (q.toLowerCase().includes("rectangle perimeter")) return "Rectangle perimeter formula: 2(length + width).";
+    if (q.toLowerCase().includes("circle area")) return "Circle area formula: pi × r × r (use pi about 3.14).";
+    if (q.toLowerCase().includes("circle circumference")) return "Circumference formula: 2 × pi × r.";
+    if (q.toLowerCase().includes("triangle area")) return "Triangle area formula: (base × height) / 2.";
+    if (q.toLowerCase().includes("hypotenuse")) return "Use the Pythagorean theorem: a^2 + b^2 = c^2.";
+    if (q.toLowerCase().includes("prism volume")) return "Rectangular prism volume formula: length × width × height.";
+    if (q.toLowerCase().includes("sphere volume")) return "Sphere volume formula: (4/3) × pi × r^3.";
+    if (q.toLowerCase().includes("cone volume")) return "Cone volume formula: (1/3) × pi × r^2 × h.";
+  }
+
+  if (category === "calculus") {
+    if (q.toLowerCase().includes("derivative")) {
+      return "Use the power rule: d/dx(x^n) = n*x^(n-1).";
+    }
+    if (q.toLowerCase().includes("integral")) {
+      return "For integral of x^n, add 1 to the exponent and divide by the new exponent.";
+    }
+  }
+
+  if (typeof a === "string" && a.includes("/")) {
+    return "Apply the operation carefully, then simplify your fraction to lowest terms.";
+  }
+
+  return pickHintVariant(q + a, [
+    "Identify the operation first, then solve step by step.",
+    "Estimate first, then compute and check if your answer is reasonable."
+  ]);
 }
 
 function getEffectiveDifficulty() {
@@ -1489,7 +1626,7 @@ function submitAnswer() {
 
   let isCorrect = false;
   if (typeof correctAnswer === "string" && correctAnswer.includes("/")) {
-    isCorrect = (answerInput === correctAnswer);
+    isCorrect = fractionsAreEquivalent(answerInput, correctAnswer);
   } else {
     const userNum = parseFloat(answerInput);
     const correctNum = parseFloat(correctAnswer);
@@ -1536,11 +1673,11 @@ async function getHint() {
       }
     }
   } catch (error) {
-    // Fall back to a generic message if the backend is unavailable.
+    // Fall back to local hints when backend is unavailable.
   }
 
-  hintElement.innerText = "Hint unavailable right now. Try spotting the operation first, then work one step at a time.";
-  document.getElementById("hintUsed").innerText = "⚠️ Hint used! Try again after the server responds.";
+  hintElement.innerText = buildLocalHint(currentQuestion, correctAnswer, currentCategory);
+  document.getElementById("hintUsed").innerText = "⚠️ Hint used!";
 }
 function playActionAnimation(actionType) {
   const battleScene = document.getElementById("battleScene");
