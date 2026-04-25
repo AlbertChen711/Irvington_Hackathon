@@ -841,96 +841,141 @@ function pickHintVariant(seedText, options) {
   return options[hash % options.length];
 }
 
-function buildLocalHint(question, answer, category) {
+function parseProblemContext(question, category) {
   const q = String(question || "").trim();
-  const a = String(answer ?? "").trim();
-  const numbers = q.match(/-?\d+(?:\.\d+)?/g) || [];
+  const lower = q.toLowerCase();
+  const numericTokens = q.match(/-?\d+(?:\.\d+)?/g) || [];
+  const numbers = numericTokens.map((token) => parseFloat(token)).filter((num) => Number.isFinite(num));
 
-  if (category === "addition") {
+  const fractionExprMatch = q.match(/([+-]?\d+)\s*\/\s*([+-]?\d+)\s*([+\-×÷*\/])\s*([+-]?\d+)\s*\/\s*([+-]?\d+)/);
+  const algebraLinearMatch = q.match(/([+-]?\d+)\s*x\s*=\s*([+-]?\d+)/i);
+
+  let op = null;
+  if (q.includes("×")) op = "×";
+  else if (q.includes("÷")) op = "÷";
+  else if (q.includes("+")) op = "+";
+  else if (/\s-\s|^-\d/.test(q)) op = "-";
+  else if (q.includes("*")) op = "*";
+  else if (q.includes("/")) op = "/";
+
+  let inferredType = category || "";
+  if (!inferredType) {
+    if (fractionExprMatch) inferredType = "fractions";
+    else if (lower.includes("derivative") || lower.includes("integral") || lower.includes("\u222b")) inferredType = "calculus";
+    else if (lower.includes("area") || lower.includes("perimeter") || lower.includes("circumference") || lower.includes("volume") || lower.includes("triangle") || lower.includes("rectangle") || lower.includes("circle") || lower.includes("sphere") || lower.includes("cone")) inferredType = "geometry";
+    else if (lower.includes("x") || lower.includes("solve") || q.includes("=")) inferredType = "algebra";
+    else if (numericTokens.some((token) => token.includes("."))) inferredType = "decimals";
+    else if (op === "+") inferredType = "addition";
+    else if (op === "-") inferredType = "subtraction";
+    else if (op === "×" || op === "*") inferredType = "multiplication";
+  }
+
+  return {
+    q,
+    lower,
+    numbers,
+    op,
+    inferredType,
+    fractionExprMatch,
+    algebraLinearMatch,
+  };
+}
+
+function buildLocalHint(question, answer, category) {
+  const parsed = parseProblemContext(question, category);
+  const q = parsed.q;
+  const lower = parsed.lower;
+  const numbers = parsed.numbers;
+  const inferredType = parsed.inferredType;
+  const op = parsed.op;
+
+  if (inferredType === "addition") {
     return pickHintVariant(q, [
-      `Break it into parts: add ${numbers[0] || "the first number"} and ${numbers[1] || "the second number"} one place value at a time.`,
-      "Start with the smaller place values and carry if needed."
+      `Add ${numbers[0] ?? "the first number"} and ${numbers[1] ?? "the second number"} by place value: ones, then tens.`,
+      "Start from the rightmost digits and carry only when a column reaches 10 or more.",
     ]);
   }
 
-  if (category === "subtraction") {
+  if (inferredType === "subtraction") {
     return pickHintVariant(q, [
-      `Subtract ${numbers[1] || "the second number"} from ${numbers[0] || "the first number"}. Borrow when a top digit is smaller.`,
-      "Work from right to left and check with addition afterward."
+      `Subtract ${numbers[1] ?? "the second number"} from ${numbers[0] ?? "the first number"}, and regroup if a top digit is smaller.`,
+      "Work right to left, then verify by adding your result back to the subtracted number.",
     ]);
   }
 
-  if (category === "multiplication") {
+  if (inferredType === "multiplication") {
     return pickHintVariant(q, [
-      `Multiply ${numbers[0] || "the first factor"} by ${numbers[1] || "the second factor"} using partial products if needed.`,
-      "Estimate first, then compute exactly and compare to your estimate."
+      `Treat ${numbers[0] ?? "factor A"} ${op || "x"} ${numbers[1] ?? "factor B"} as equal groups or an array.`,
+      "Use partial products or skip-counting, then check that your result is reasonable.",
     ]);
   }
 
-  if (category === "fractions") {
-    const fracMatch = q.match(/^\s*([+-]?\d+)\s*\/\s*([+-]?\d+)\s*([+\-×÷])\s*([+-]?\d+)\s*\/\s*([+-]?\d+)\s*$/);
-    if (fracMatch) {
-      const op = fracMatch[3];
-      if (op === "+" || op === "-") {
-        return `Find a common denominator first (try ${Math.abs(parseInt(fracMatch[2], 10) * parseInt(fracMatch[5], 10))}), then combine numerators and simplify.`;
+  if (inferredType === "fractions" || parsed.fractionExprMatch || (String(answer ?? "").includes("/"))) {
+    const m = parsed.fractionExprMatch;
+    if (m) {
+      const denom1 = Math.abs(parseInt(m[2], 10));
+      const denom2 = Math.abs(parseInt(m[5], 10));
+      const fracOp = m[3];
+      if (fracOp === "+" || fracOp === "-") {
+        return `Use a common denominator first (for example ${denom1 * denom2}), then combine numerators and simplify.`;
       }
-      if (op === "×") {
-        return "Multiply straight across: numerator by numerator, denominator by denominator, then reduce the fraction.";
+      if (fracOp === "×" || fracOp === "*") {
+        return "Multiply numerator by numerator and denominator by denominator, then reduce the fraction.";
       }
-      return "For division, multiply by the reciprocal of the second fraction, then simplify.";
+      return "For fraction division, multiply by the reciprocal of the second fraction, then simplify.";
     }
-    return "Look at the operation between the fractions, apply that rule, and simplify your final fraction.";
+    return "Identify the fraction operation, apply that rule carefully, and always simplify at the end.";
   }
 
-  if (category === "decimals") {
+  if (inferredType === "decimals") {
     if (q.includes("+") || q.includes("-")) {
-      return "Line up decimal points first, then add or subtract digit by digit.";
+      return "Line up the decimal points vertically before adding or subtracting.";
     }
-    if (q.includes("×")) {
-      return "Multiply as whole numbers first, then place the decimal using total decimal places from both factors.";
+    if (q.includes("×") || q.includes("*")) {
+      return "Multiply like whole numbers first, then place the decimal using total decimal places from both factors.";
     }
-    if (q.includes("÷")) {
-      return "Shift decimals to make the divisor a whole number, then divide.";
+    if (q.includes("÷") || q.includes("/")) {
+      return "Shift decimals equally so the divisor becomes a whole number, then divide.";
     }
-    return "Use place value and decimal alignment before calculating.";
+    return "Track tenths, hundredths, and thousandths so place values stay aligned.";
   }
 
-  if (category === "algebra") {
-    const algebraMatch = q.match(/^\s*([+-]?\d+)x\s*=\s*([+-]?\d+)\s*$/i);
-    if (algebraMatch) {
-      return `Isolate x by dividing both sides by ${algebraMatch[1]}.`;
+  if (inferredType === "algebra") {
+    if (parsed.algebraLinearMatch) {
+      const coeff = parseFloat(parsed.algebraLinearMatch[1]);
+      const rhs = parseFloat(parsed.algebraLinearMatch[2]);
+      if (Number.isFinite(coeff) && Number.isFinite(rhs) && coeff !== 0) {
+        return `Isolate x by dividing both sides by ${coeff}. Keep both sides balanced at every step.`;
+      }
     }
-    return "Undo operations in reverse order to isolate x.";
+    return "Undo operations in reverse order to isolate the variable, and apply the same step to both sides.";
   }
 
-  if (category === "geometry") {
-    if (q.toLowerCase().includes("rectangle area")) return "Rectangle area formula: length × width.";
-    if (q.toLowerCase().includes("rectangle perimeter")) return "Rectangle perimeter formula: 2(length + width).";
-    if (q.toLowerCase().includes("circle area")) return "Circle area formula: pi × r × r (use pi about 3.14).";
-    if (q.toLowerCase().includes("circle circumference")) return "Circumference formula: 2 × pi × r.";
-    if (q.toLowerCase().includes("triangle area")) return "Triangle area formula: (base × height) / 2.";
-    if (q.toLowerCase().includes("hypotenuse")) return "Use the Pythagorean theorem: a^2 + b^2 = c^2.";
-    if (q.toLowerCase().includes("prism volume")) return "Rectangular prism volume formula: length × width × height.";
-    if (q.toLowerCase().includes("sphere volume")) return "Sphere volume formula: (4/3) × pi × r^3.";
-    if (q.toLowerCase().includes("cone volume")) return "Cone volume formula: (1/3) × pi × r^2 × h.";
+  if (inferredType === "geometry") {
+    if (lower.includes("rectangle") && lower.includes("area")) return "Rectangle area uses length x width. Multiply the two side lengths.";
+    if (lower.includes("rectangle") && lower.includes("perimeter")) return "Rectangle perimeter is 2(length + width). Add first, then multiply by 2.";
+    if (lower.includes("circle") && lower.includes("area")) return "Circle area is pi r^2. Square the radius first, then multiply by pi.";
+    if (lower.includes("circumference")) return "Circle circumference is 2 pi r. Multiply 2, pi, and radius.";
+    if (lower.includes("triangle") && lower.includes("area")) return "Triangle area is (base x height) / 2. Multiply first, then divide by 2.";
+    if (lower.includes("hypotenuse")) return "Use a^2 + b^2 = c^2, then take the square root to get c.";
+    if (lower.includes("prism") && lower.includes("volume")) return "Rectangular prism volume is length x width x height.";
+    if (lower.includes("sphere") && lower.includes("volume")) return "Sphere volume is (4/3) pi r^3. Cube the radius, then multiply.";
+    if (lower.includes("cone") && lower.includes("volume")) return "Cone volume is (1/3) pi r^2 h. Compute r^2 first.";
+    return "Sketch the shape, label known values, then match the formula to what the question asks.";
   }
 
-  if (category === "calculus") {
-    if (q.toLowerCase().includes("derivative")) {
-      return "Use the power rule: d/dx(x^n) = n*x^(n-1).";
-    }
-    if (q.toLowerCase().includes("integral")) {
-      return "For integral of x^n, add 1 to the exponent and divide by the new exponent.";
-    }
+  if (inferredType === "calculus") {
+    if (lower.includes("derivative")) return "Use the power rule: multiply by the exponent, then reduce the exponent by 1.";
+    if (lower.includes("integral") || lower.includes("\u222b")) return "Increase the exponent by 1 and divide by the new exponent (ignore +C if asked).";
   }
 
-  if (typeof a === "string" && a.includes("/")) {
-    return "Apply the operation carefully, then simplify your fraction to lowest terms.";
+  if (numbers.length >= 2) {
+    return `Use the key numbers ${numbers.slice(0, 3).join(", ")}. Decide the operation first, then solve one step at a time.`;
   }
 
-  return pickHintVariant(q + a, [
-    "Identify the operation first, then solve step by step.",
-    "Estimate first, then compute and check if your answer is reasonable."
+  return pickHintVariant(q, [
+    "Identify what is being asked, list the known values, then solve in small steps.",
+    "Estimate first, then calculate and check whether your result makes sense.",
   ]);
 }
 
@@ -1640,9 +1685,11 @@ async function getHint() {
   if (!gameActive || questionLocked || waitingForNextQuestion) return;
   
   const hintElement = document.getElementById("hint");
+  const localHint = buildLocalHint(currentQuestion, correctAnswer, currentCategory);
   hintUsedCount++;
 
-  hintElement.innerText = "Thinking...";
+  hintElement.innerText = localHint;
+  document.getElementById("hintUsed").innerText = "⚠️ Hint used!";
 
   try {
     const controller = new AbortController();
@@ -1673,11 +1720,8 @@ async function getHint() {
       }
     }
   } catch (error) {
-    // Fall back to local hints when backend is unavailable.
+    // Keep local hint if backend is unavailable.
   }
-
-  hintElement.innerText = buildLocalHint(currentQuestion, correctAnswer, currentCategory);
-  document.getElementById("hintUsed").innerText = "⚠️ Hint used!";
 }
 function playActionAnimation(actionType) {
   const battleScene = document.getElementById("battleScene");
